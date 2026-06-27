@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 
-// base is set to './' so the static build works under a GitHub Pages subpath.
-// The standardization pass (Parts 0 + A–E) may override this; relative base is safe meanwhile.
+// base is the GitHub Pages project subpath for this repo (Part C). Served from
+// https://systemslibrarian.github.io/crypto-lab-vigenere-break/.
 export default defineConfig({
-  base: './',
+  base: '/crypto-lab-vigenere-break/',
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

@@ -1,0 +1,24 @@
+# Continuous integration: typecheck, test, and build on every push / PR.
+# Deployment to GitHub Pages is handled separately by `npm run deploy`
+# (gh-pages → gh-pages branch), per the Crypto Lab suite standard.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
