@@ -2,6 +2,7 @@ import './style.css';
 import { el } from './ui/dom';
 import { createCipherPanel } from './ui/cipherPanel';
 import { createBreakWorkbench } from './ui/breakWorkbench';
+import { createExplainer } from './ui/explainer';
 
 const app = document.getElementById('app');
 if (!app) throw new Error('#app mount point missing');
@@ -25,4 +26,4 @@ const intro = el('section', { class: 'intro' }, [
   ]),
 ]);
 
-app.append(intro, createCipherPanel(), createBreakWorkbench());
+app.append(intro, createCipherPanel(), createBreakWorkbench(), createExplainer());

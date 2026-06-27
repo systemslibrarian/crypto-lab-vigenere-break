@@ -111,12 +111,18 @@ export function createCipherPanel(): HTMLElement {
     renderStrip(result);
   }
 
-  input.addEventListener('input', render);
+  const counts = el('p', { class: 'hint', id: 'cipher-counts', 'aria-live': 'polite' });
+  function renderCounts() {
+    const norm = input.value.toUpperCase().replace(/[^A-Z]/g, '').length;
+    counts.textContent = `${input.value.length} characters · ${norm} letters processed`;
+  }
+
+  input.addEventListener('input', () => { renderCounts(); render(); });
   keyInput.addEventListener('input', render);
 
   card.append(
     el('div', { class: 'row' }, [
-      el('div', {}, [inputLabel, input]),
+      el('div', {}, [inputLabel, input, counts]),
     ]),
     el('div', { class: 'row' }, [
       el('div', {}, [keyLabel, keyInput]),
@@ -131,5 +137,6 @@ export function createCipherPanel(): HTMLElement {
   );
 
   setDirection('encrypt');
+  renderCounts();
   return card;
 }

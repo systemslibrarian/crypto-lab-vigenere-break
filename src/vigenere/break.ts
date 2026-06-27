@@ -17,14 +17,22 @@ export const DEFAULT_MAX_KEY_LENGTH = 20;
  */
 export const IOC_MAX_FLOOR = 0.058;
 
-/**
- * Two periods are "equally English-like" when their averaged IoC differ by less
- * than this. Used to pick the fundamental period (smallest divisor of the
- * argmax period whose IoC is within this margin of the maximum) rather than one
- * of its multiples, and to exclude proper sub-divisors whose IoC is markedly
- * lower (e.g. period 3 under a length-6 key).
- */
+/** Periods within this IoC margin of the maximum are shown as a reinforcing cluster. */
 export const IOC_PEAK_DELTA = 0.008;
+
+/**
+ * Local-peak prominence: a period qualifies as a fundamental candidate when its
+ * averaged IoC rises at least this far above the mean of its two neighbours. The
+ * true key length spikes sharply (its columns are clean Caesar shifts); a proper
+ * sub-divisor (e.g. period 3 under a length-6 key) is only a gentle bump and is
+ * correctly rejected, while a noisy multiple loses to the smaller true divisor.
+ *
+ * Calibrated to sit above observed sub-divisor prominence (~0.008–0.014) and
+ * below true-period prominence (~0.021+). The bias is deliberately safe: too high
+ * merely falls back to a multiple of the true length (which still decrypts
+ * correctly), whereas too low would pick a sub-divisor and yield garbage.
+ */
+export const IOC_PROMINENCE = 0.017;
 
 /** Minimum letters before the statistics are worth trusting at all. */
 export const MIN_LETTERS_FOR_STATS = 50;
@@ -92,18 +100,29 @@ export function diagnoseKeyLength(
     .map((c) => c.period)
     .sort((a, b) => a - b);
 
-  // The fundamental period is the smallest divisor of the argmax period whose IoC
-  // is also near the maximum. A proper sub-divisor (e.g. 3 under a length-6 key)
-  // has a markedly lower IoC and is excluded; a multiple is larger and loses to
-  // the smaller divisor.
+  // Prominence of a period: how far its IoC rises above its immediate neighbours.
+  const prominence = (p: number): number => {
+    const v = iocByPeriod.get(p) ?? 0;
+    const neigh = [iocByPeriod.get(p - 1), iocByPeriod.get(p + 1)].filter(
+      (x): x is number => x !== undefined
+    );
+    const base = neigh.length ? neigh.reduce((a, b) => a + b, 0) / neigh.length : 0;
+    return v - base;
+  };
+
+  // The fundamental period is the SMALLEST divisor of the argmax period that is
+  // itself a sharp local peak. This rejects gentle sub-divisor bumps and prefers
+  // the true length over any of its noisier multiples.
   let iocPeak: number | null = null;
   if (maxIoc >= IOC_MAX_FLOOR) {
     for (let d = 2; d <= argmax.period; d++) {
-      if (argmax.period % d === 0 && (iocByPeriod.get(d) ?? 0) >= maxIoc - IOC_PEAK_DELTA) {
+      if (argmax.period % d === 0 && prominence(d) >= IOC_PROMINENCE) {
         iocPeak = d;
         break;
       }
     }
+    // The argmax itself is always a peak; fall back to it if nothing smaller qualifies.
+    if (iocPeak === null) iocPeak = argmax.period;
   }
 
   // Kasiski factor support, normalised against the most-supported factor.
