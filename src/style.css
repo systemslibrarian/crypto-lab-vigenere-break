@@ -4,47 +4,51 @@
  * toggle. Here we only define the demo surface and the required --accent token.
  */
 
+/*
+ * Theme contract (Crypto Lab): dark is the DEFAULT under :root; light is an
+ * override under :root[data-theme="light"]. The shared-header toggle flips
+ * data-theme on <html> and persists 'theme' in localStorage. No prefers-color-scheme.
+ */
 :root {
-  /* Historical-wing accent: muted violet (distinct from Enigma brass / OTP blue). */
+  /* Historical-wing accent: muted violet (distinct from Enigma brass / OTP blue).
+     Same value in both themes so the always-dark shared header tints correctly. */
+  --accent: #7e57c2;
+  --accent-soft: #9575cd;
+  --accent-ink: #d1c4e9;
+
+  /* Security-state semantics — never color alone; always paired with icon + text. */
+  --alarm: #ff6b6b; /* the break landing = cipher failed */
+  --alarm-soft: #3a1d1d;
+  --caution: #ffd166; /* inconclusive / short text = neutral caution */
+  --caution-soft: #3a3320;
+  --ok: #7bd88f;
+
+  --bg: #15121c;
+  --surface: #1e1a28;
+  --surface-2: #271f38;
+  --ink: #ece9f3;
+  --ink-soft: #a8a2bd;
+  --border: #352d49;
+  --radius: 12px;
+  --mono: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", Menlo, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+:root[data-theme="light"] {
   --accent: #7e57c2;
   --accent-soft: #b39ddb;
   --accent-ink: #4527a0;
-
-  /* Security-state semantics — never color alone; always paired with icon + text. */
-  --alarm: #c62828; /* the break landing = cipher failed */
+  --alarm: #c62828;
   --alarm-soft: #ffebee;
-  --caution: #8d6e00; /* inconclusive / short text = neutral caution */
+  --caution: #8d6e00;
   --caution-soft: #fff8e1;
   --ok: #2e7d32;
-
   --bg: #faf9fc;
   --surface: #ffffff;
   --surface-2: #f2eefb;
   --ink: #1c1726;
   --ink-soft: #5a5470;
   --border: #e0dbec;
-  --radius: 12px;
-  --mono: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", Menlo, monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --accent: #b39ddb;
-    --accent-soft: #7e57c2;
-    --accent-ink: #d1c4e9;
-    --alarm: #ff6b6b;
-    --alarm-soft: #3a1d1d;
-    --caution: #ffd166;
-    --caution-soft: #3a3320;
-    --ok: #7bd88f;
-    --bg: #15121c;
-    --surface: #1e1a28;
-    --surface-2: #271f38;
-    --ink: #ece9f3;
-    --ink-soft: #a8a2bd;
-    --border: #352d49;
-  }
 }
 
 * { box-sizing: border-box; }
@@ -110,9 +114,6 @@ button {
   font-size: 0.9rem;
 }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-@media (prefers-color-scheme: dark) {
-  button.primary { color: #1a1320; }
-}
 button:hover { filter: brightness(1.05); }
 
 /* Visible focus rings everywhere (WCAG 2.4.7). */
@@ -128,9 +129,6 @@ button:hover { filter: brightness(1.05); }
 .toggle-group { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .toggle-group button { border: none; border-radius: 0; background: var(--surface); }
 .toggle-group button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-@media (prefers-color-scheme: dark) {
-  .toggle-group button[aria-pressed="true"] { color: #1a1320; }
-}
 
 /* Monospace alignment strips: horizontal scroll, never wrap. */
 .strip-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
@@ -251,4 +249,14 @@ details.aria-table th:first-child, details.aria-table td:first-child { text-alig
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+}
+
+/* Scripture footer — the last visible element on the page (uses existing tokens). */
+.scripture-footer {
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink-soft);
+  margin-top: 2rem;
 }
