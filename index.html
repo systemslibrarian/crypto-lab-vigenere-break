@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Anti-flash theme bootstrap (Part A1): dark is the default when localStorage is empty.
+         Must run before any <link>/<style>. Do not use prefers-color-scheme. -->
+    <script>
+      (function () {
+        const saved = localStorage.getItem('theme');
+        document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+      })();
+    </script>
+    <title>Vigenère Break — crypto-lab</title>
+    <meta
+      name="description"
+      content="The Vigenère cipher and its Kasiski / index-of-coincidence / frequency-analysis break — real classical cryptanalysis, no backend."
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔤</text></svg>"
+    />
+    <script type="module" crossorigin src="/crypto-lab-vigenere-break/assets/index-By1LxqtJ.js"></script>
+    <link rel="stylesheet" crossorigin href="/crypto-lab-vigenere-break/assets/index-CEWaihtt.css">
+  </head>
+  <body>
+    <!-- Part 0: the canonical shared Crypto Lab header (cl-topbar) is applied here,
+         immediately after <body>, from the catalog's shared-header.html. BLOCKED:
+         the snippet was not supplied (empty APPENDIX), so per the prompt's rules the
+         header is NOT hand-built. It will be inserted here once the snippet is provided. -->
+    <main id="app"></main>
+    <footer class="scripture-footer">
+      <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
+    </footer>
+  </body>
+</html>
