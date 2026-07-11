@@ -42,7 +42,9 @@
   --alarm-soft: #ffebee;
   --caution: #8d6e00;
   --caution-soft: #fff8e1;
-  --ok: #2e7d32;
+  /* Darker than the dark-theme ok so status/rail text clears 4.5:1 on its own
+     ~10-12% ok-tinted fills (2e7d32 landed at 4.35-4.48). */
+  --ok: #1b6e21;
   --bg: #faf9fc;
   --surface: #ffffff;
   --surface-2: #f2eefb;
@@ -215,7 +217,9 @@ details.aria-table table { border-collapse: collapse; font-size: 0.8rem; margin-
 details.aria-table th, details.aria-table td { border: 1px solid var(--border); padding: 0.2rem 0.45rem; text-align: right; }
 details.aria-table th:first-child, details.aria-table td:first-child { text-align: left; }
 
-.repeat-hl { background: color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 3px; }
+/* <mark> defaults to black-on-yellow; here it sits on the dark mono-out surface,
+   so restate an accessible fill + ink (>=4.5:1) per theme instead. */
+.repeat-hl { background: color-mix(in srgb, var(--accent) 42%, var(--surface-2)); color: var(--ink); border-radius: 3px; }
 
 /* Progress rail */
 .rail { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin: 0.4rem 0; }
@@ -260,3 +264,6 @@ details.aria-table th:first-child, details.aria-table td:first-child { text-alig
   color: var(--ink-soft);
   margin-top: 2rem;
 }
+/* Related-demo links sit in a text run: use the themed accent ink (>=4.5:1 on the
+   page bg) and keep a persistent underline so they're not color-only. */
+.scripture-footer a { color: var(--accent-ink); text-decoration: underline; }

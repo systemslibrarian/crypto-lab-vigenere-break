@@ -14,7 +14,8 @@ export interface TableauHandle {
 }
 
 export function createTableau(): TableauHandle {
-  const wrap = el('div', { class: 'tableau-wrap' });
+  // Scrollable (overflow:auto) region — keyboard-accessible with an accessible name.
+  const wrap = el('div', { class: 'tableau-wrap', tabindex: '0', role: 'group', 'aria-label': 'Vigenère tableau (scrollable)' });
   const table = el('table', {
     class: 'tableau',
     'aria-label': 'Vigenère tableau (tabula recta): rows are key letters, columns are plaintext letters, cells are the resulting ciphertext letter',

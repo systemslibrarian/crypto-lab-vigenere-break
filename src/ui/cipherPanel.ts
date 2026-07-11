@@ -33,7 +33,8 @@ export function createCipherPanel(): HTMLElement {
 
   const keyErr = el('p', { class: 'hint', role: 'alert', style: 'color:var(--alarm)' });
   const outWrap = el('div');
-  const stripWrap = el('div', { class: 'strip-wrap' });
+  // Horizontally scrollable alignment strip needs keyboard access + a name.
+  const stripWrap = el('div', { class: 'strip-wrap', tabindex: '0', role: 'group', 'aria-label': 'Per-letter alignment strip (scroll horizontally)' });
   const strip = el('div', { class: 'strip', role: 'img' });
   stripWrap.append(strip);
 

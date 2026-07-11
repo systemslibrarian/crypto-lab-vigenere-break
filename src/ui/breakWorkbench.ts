@@ -183,7 +183,7 @@ export function createBreakWorkbench(): HTMLElement {
     transcriptHost.hidden = false;
     clear(transcriptHost);
     transcriptHost.append(el('h3', { style: 'margin:0 0 0.3rem;font-size:1rem', text: 'Solver transcript' }));
-    const log = el('div', { class: 'mono-out', style: 'max-height:14rem;overflow:auto' });
+    const log = el('div', { class: 'mono-out', style: 'max-height:14rem;overflow:auto', tabindex: '0', 'aria-label': 'Solver transcript output' });
     transcriptHost.append(log);
 
     if (REDUCED_MOTION) {
@@ -589,7 +589,14 @@ function confColor(label: string): string {
 }
 
 function renderHighlightedText(letters: string, highlight: Set<string>): HTMLElement {
-  const wrap = el('div', { class: 'mono-out', style: 'max-height:7rem;overflow:auto' });
+  // Scrollable (overflow:auto) region needs keyboard access + an accessible name.
+  const wrap = el('div', {
+    class: 'mono-out',
+    style: 'max-height:7rem;overflow:auto',
+    tabindex: '0',
+    role: 'group',
+    'aria-label': 'Ciphertext with repeated substrings highlighted',
+  });
   const subs = [...highlight].sort((a, b) => b.length - a.length);
   let i = 0;
   while (i < letters.length) {
