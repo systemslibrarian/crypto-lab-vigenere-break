@@ -61,7 +61,7 @@ async function scan(page: Page): Promise<void> {
 
 test('no WCAG A/AA violations in dark theme', async ({ page }) => {
   await page.goto('.');
-  await expect(page.locator('#app .intro h1')).toBeVisible();
+  await expect(page.locator('#app .cl-hero-title')).toBeVisible();
   await killMotion(page);
   await driveDemos(page);
   await openAllDetails(page);
@@ -70,7 +70,7 @@ test('no WCAG A/AA violations in dark theme', async ({ page }) => {
 
 test('no WCAG A/AA violations in light theme', async ({ page }) => {
   await page.goto('.');
-  await expect(page.locator('#app .intro h1')).toBeVisible();
+  await expect(page.locator('#app .cl-hero-title')).toBeVisible();
   await page.locator('#cl-theme-toggle').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await killMotion(page);
