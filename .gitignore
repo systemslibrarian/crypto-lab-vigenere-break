@@ -5,3 +5,7 @@ dist
 /test-results/
 /playwright-report/
 /.pw-browsers/
+
+# Review notes kept locally, not part of the shipped demo
+chat*.md
+gem.md
