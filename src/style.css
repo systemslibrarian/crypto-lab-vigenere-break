@@ -29,6 +29,14 @@
   --ink: #ece9f3;
   --ink-soft: #a8a2bd;
   --border: #352d49;
+  /* Control boundaries only (WCAG 2.1 SC 1.4.11). The textarea/input/select rule
+     fills fields with --surface — the *same* hex as the .card behind them — so
+     the 1px border is the only thing that delineates the control. #7a7099 keeps
+     the violet cast of --border and clears 3:1 on every surface a field can sit
+     on: 4.06:1 on --bg, 3.73:1 on --surface, 3.44:1 on --surface-2.
+     --border is left unchanged for decorative rules: card outlines, the tableau
+     and strip wrappers, bar tracks, rail steps, section dividers. */
+  --border-strong: #7a7099;
   --radius: 12px;
   --mono: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", Menlo, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -51,6 +59,10 @@
   --ink: #1c1726;
   --ink-soft: #5a5470;
   --border: #e0dbec;
+  /* Light-theme control boundary, same rationale as the dark token above.
+     #877c98: 3.91:1 on --surface (#ffffff), 3.73:1 on --bg, 3.43:1 on
+     --surface-2. */
+  --border-strong: #877c98;
 }
 
 * { box-sizing: border-box; }
@@ -110,7 +122,9 @@ textarea, input[type="text"], select {
   font-size: 0.95rem;
   min-height: 44px;
   padding: 0.6rem 0.7rem;
-  border: 1px solid var(--border);
+  /* --border-strong, not --border: the fill is --surface, identical to the card
+     behind it, so this border is load-bearing. See the token for ratios. */
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--ink);
