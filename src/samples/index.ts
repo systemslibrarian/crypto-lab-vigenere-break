@@ -132,7 +132,7 @@ export const SAMPLES: Sample[] = [
     solutionKey: 'THISKEYISALMOSTASLONGASTHEWHOLEMESSAGE',
     plaintext: BOUNDARY,
     note: 'The key is nearly as long as the message, so each column has only a letter or two. The statistics cannot resolve it — this is the boundary where Vigenère shades into a one-time pad and becomes effectively unbreakable. See the OTP Vault demo for the limit.',
-    whatToNotice: 'No usable IoC peak: the columns are too thin. This is why a key as long as the message is unbreakable.',
+    whatToNotice: 'No usable IoC peak: the columns are too thin. This is why a one-time pad — a key as long as the message, truly random, and never reused — is unbreakable. Drop any one of those three conditions and it is not.',
   }),
   make({
     id: 'short',
