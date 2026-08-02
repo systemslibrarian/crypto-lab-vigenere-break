@@ -19,7 +19,10 @@ export default defineConfig({
     { name: 'chromium', use: { channel: undefined, browserName: 'chromium' } },
   ],
   webServer: {
-    command: `npm run preview -- --port ${PORT} --strictPort`,
+    // Build before previewing. `vite preview` only serves whatever is already in
+    // dist/, so without this a failed build leaves the last good bundle in place
+    // and the scan passes green against source that no longer compiles.
+    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}${BASE}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
