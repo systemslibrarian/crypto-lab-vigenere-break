@@ -95,10 +95,19 @@ export function diagnoseKeyLength(
   // Periods whose IoC is within a hair of the maximum — for a Vigenère key of
   // length L these are L and its multiples, which all "light up" together. This
   // mutual reinforcement is the convergence cue shown in the UI.
-  const strongIocPeriods = usable
-    .filter((c) => c.averageIoc >= maxIoc - IOC_PEAK_DELTA)
-    .map((c) => c.period)
-    .sort((a, b) => a - b);
+  //
+  // Gated on the same English-like floor the peak diagnosis uses: when the best
+  // period does not even reach it, NOTHING here is English-like, and flagging a
+  // cluster of near-random periods as "English-like ◆ peaks" contradicts the
+  // "No period produces an English-like IoC" verdict the UI shows alongside it
+  // (visible on the OTP-boundary sample, where it undercut the whole lesson).
+  const strongIocPeriods =
+    maxIoc >= IOC_MAX_FLOOR
+      ? usable
+          .filter((c) => c.averageIoc >= maxIoc - IOC_PEAK_DELTA)
+          .map((c) => c.period)
+          .sort((a, b) => a - b)
+      : [];
 
   // Prominence of a period: how far its IoC rises above its immediate neighbours.
   const prominence = (p: number): number => {

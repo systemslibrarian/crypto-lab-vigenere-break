@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runBreak } from './break';
+import { analyzeCiphertext, runBreak } from './break';
 import { encrypt, normalize } from './cipher';
 import { SAMPLES, sampleById } from '../samples';
 
@@ -75,6 +75,26 @@ describe('Full break pipeline (derived, not hardcoded)', () => {
     const result = runBreak(sample.ciphertext, { keyLength: Math.floor(letters.length / 2) });
     expect(result.inconclusive).toBe(true);
     expect(result.note).toMatch(/one-time-pad|OTP|boundary/i);
+  });
+
+  // Regression: the UI marks strongIocPeriods with "peak ◆" under an
+  // "English-like?" heading. When no period clears the English-like floor the
+  // diagnosis reports no peak, so the marks must be absent too — otherwise the
+  // OTP-boundary sample simultaneously claims "English-like peaks at 2,3,4,5,6"
+  // and "No period produces an English-like IoC".
+  it('flags no English-like periods when the IoC peak itself is inconclusive', () => {
+    const sample = sampleById('boundary')!;
+    const analysis = analyzeCiphertext(sample.ciphertext);
+    expect(analysis.diagnosis.iocPeak).toBeNull();
+    expect(analysis.diagnosis.strongIocPeriods).toEqual([]);
+  });
+
+  it('still flags the English-like cluster when a peak IS found', () => {
+    const analysis = analyzeCiphertext(sampleById('declaration')!.ciphertext);
+    expect(analysis.diagnosis.iocPeak).toBe(5);
+    // The true length and its multiples all light up together.
+    expect(analysis.diagnosis.strongIocPeriods).toContain(5);
+    expect(analysis.diagnosis.strongIocPeriods.every((p) => p % 5 === 0)).toBe(true);
   });
 
   it('every bundled sample round-trips under its own solution key', () => {
