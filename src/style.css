@@ -29,12 +29,19 @@
   --ink: #ece9f3;
   --ink-soft: #a8a2bd;
   --border: #352d49;
-  /* Control boundaries only (WCAG 2.1 SC 1.4.11). The textarea/input/select rule
-     fills fields with --surface — the *same* hex as the .card behind them — so
-     the 1px border is the only thing that delineates the control. #7a7099 keeps
-     the violet cast of --border and clears 3:1 on every surface a field can sit
-     on: 4.06:1 on --bg, 3.73:1 on --surface, 3.44:1 on --surface-2.
-     --border is left unchanged for decorative rules: card outlines, the tableau
+  /* Control boundaries (WCAG 2.1 SC 1.4.11). Every control on this page fills
+     itself with --surface or --surface-2, both within 1.09:1 of the .card behind
+     them, so the 1px border is the ONLY thing that delineates the control and it
+     has to clear 3:1 against both the fill and the surround. #7a7099 keeps the
+     violet cast of --border and does: 4.06:1 on --bg, 3.73:1 on --surface,
+     3.44:1 on --surface-2.
+
+     This token used to be applied to exactly ONE rule —
+     `textarea, input[type="text"], select` — while every BUTTON-shaped control
+     drew its edge from --border, a decorative divider. Measured, that put every
+     plain button, every copy button and every segment of every toggle group at
+     1.21:1 in dark and 1.19:1 in light: a control with no perceivable edge at
+     all. --border is now genuinely decorative-only: card outlines, the tableau
      and strip wrappers, bar tracks, rail steps, section dividers. */
   --border-strong: #7a7099;
   --radius: 12px;
@@ -116,7 +123,16 @@ body {
 label { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 0.3rem; }
 .hint { font-size: 0.82rem; color: var(--ink-soft); margin: 0.25rem 0 0; }
 
-textarea, input[type="text"], select {
+/* `input[type="number"]` belongs here and was missing. `#max-kl` (Max key
+   length) matched none of these selectors, so it fell through to the user
+   agent's own widget: a WHITE fill with BLACK text and a 2px #767676 border,
+   21px tall and 42px wide, in a lab whose every other field is --surface /
+   --ink / --border-strong at 44px. Two separate problems, neither of which any
+   oracle in this gate can see — a UA widget's black-on-white passes contrast,
+   and target size is SC 2.5.8, which is WCAG 2.2 and outside the tag set this
+   gate runs. The `min-height: 44px` on every sibling field is the evidence that
+   21px was not the intent. */
+textarea, input[type="text"], input[type="number"], select {
   width: 100%;
   font-family: var(--mono);
   font-size: 0.95rem;
@@ -136,7 +152,11 @@ button {
   font-weight: 600;
   cursor: pointer;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  /* --border-strong, not --border: the fill is --surface-2, which sits 1.09:1
+     from the --surface card behind it, so this border is the whole boundary.
+     Measured: 3.44:1 against the fill and 3.73:1 against the card in dark;
+     3.42:1 and 3.91:1 in light. With --border it was 1.21:1 / 1.19:1. */
+  border: 1px solid var(--border-strong);
   background: var(--surface-2);
   color: var(--ink);
   padding: 0.5rem 0.9rem;
@@ -156,9 +176,26 @@ button:hover { filter: brightness(1.05); }
 .row > * { flex: 1 1 12rem; }
 .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 
-.toggle-group { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.toggle-group button { border: none; border-radius: 0; background: var(--surface); }
-.toggle-group button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+/* Segmented control. Each segment carries its OWN --border-strong edge rather
+   than relying on a single border drawn around the group: the group's border is
+   not the segment's boundary, and with `border: none` on the buttons an
+   unpressed segment filled with --surface measured 1.00:1 against the --surface
+   card behind it — literally no edge. The 1px overlap keeps the joined look
+   (adjacent 1px edges would otherwise read as a 2px rule). */
+.toggle-group { display: inline-flex; border-radius: 8px; }
+.toggle-group button { border-radius: 0; background: var(--surface); margin-left: -1px; }
+.toggle-group button:first-child { margin-left: 0; border-radius: 8px 0 0 8px; }
+.toggle-group button:last-child { border-radius: 0 8px 8px 0; }
+/* The pressed segment paints its own edge in --accent so its overlap wins over
+   the neighbour's, and so the fill and border agree. --accent on --surface is
+   3.27:1 in dark and 5.21:1 in light. */
+.toggle-group button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
 
 /* Monospace alignment strips: horizontal scroll, never wrap. */
 .strip-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
@@ -175,6 +212,24 @@ button:hover { filter: brightness(1.05); }
 .strip .cell .k { color: var(--accent-ink); font-weight: 700; }
 .strip .cell .s { color: var(--ink-soft); font-size: 0.7rem; }
 .strip .rowlabel { position: sticky; left: 0; }
+
+/* The explainer spotlights one column of the alignment strip and de-emphasises
+   the rest. That de-emphasis used to be an inline `opacity: 0.5`, which is not
+   a mechanism an accessible page can use: opacity fades the ink toward the
+   surface it sits on, and no value of it can be chosen that both reads as
+   "dimmed" and clears 4.5:1. Measured on --surface-2, `opacity: 0.5` put the
+   plain letters at 4.34:1 in dark and 3.25:1 in light, and the key letters at
+   3.47:1 and 2.65:1 — i.e. two thirds of the strip, in the default view, below
+   the floor in both themes. Two of those axe passes, because it reads the
+   declared colour and never sees the fade.
+
+   The replacement restates a LOWER-LIGHTNESS ink instead of fading a bright
+   one. --ink-soft on --surface-2 is 6.40:1 in dark and 6.26:1 in light, and it
+   is still visibly quieter than the --ink / --accent-ink pair the spotlighted
+   column keeps — so the distinction survives, measured, rather than being
+   bought with contrast. */
+.strip .cell.spotlit { background: color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 4px; }
+.strip .cell.muted, .strip .cell.muted .k, .strip .cell.muted .s { color: var(--ink-soft); }
 
 .mono-out {
   font-family: var(--mono);

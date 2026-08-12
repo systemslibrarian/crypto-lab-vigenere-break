@@ -183,7 +183,14 @@ export function createBreakWorkbench(): HTMLElement {
     transcriptHost.hidden = false;
     clear(transcriptHost);
     transcriptHost.append(el('h3', { style: 'margin:0 0 0.3rem;font-size:1rem', text: 'Solver transcript' }));
-    const log = el('div', { class: 'mono-out', style: 'max-height:14rem;overflow:auto', tabindex: '0', 'aria-label': 'Solver transcript output' });
+    // `role="group"` is load-bearing, not decoration: without a role this is a
+    // generic <div>, and ARIA PROHIBITS `aria-label` on a generic element — the
+    // name was silently discarded, so this scrollable region was reachable by
+    // keyboard (tabindex="0") and completely unnamed when you got there. axe
+    // reports that as `aria-prohibited-attr` under `incomplete` only. Same
+    // `role="group"` + `aria-label` + `tabindex="0"` shape the tabula recta and
+    // the highlighted-ciphertext region already use.
+    const log = el('div', { class: 'mono-out', style: 'max-height:14rem;overflow:auto', tabindex: '0', role: 'group', 'aria-label': 'Solver transcript output' });
     transcriptHost.append(log);
 
     if (REDUCED_MOTION) {
@@ -576,12 +583,36 @@ function banner(kind: 'alarm' | 'caution' | 'ok' | 'info', icon: string, text: s
   ]);
 }
 
+// `aria-label` is deliberately absent. It was `aria-label="confidence ${label}"`
+// on this role-less <span>, which ARIA PROHIBITS on a generic element: the
+// attribute is silently discarded, so it never announced anything, and axe files
+// the breach under `incomplete` rather than `violations` — where a
+// violations-only gate never looks. Nothing is lost by removing it: the badge is
+// preceded in the same row by a "Key-length confidence:" label, and the word
+// itself is the <strong> below.
 function confidenceBadge(label: string): HTMLElement {
   const icon = label === 'high' ? '●●●' : label === 'medium' ? '●●○' : label === 'low' ? '●○○' : '○○○';
-  return el('span', { class: 'conf-badge', style: `color:${confColor(label)}`, 'aria-label': `confidence ${label}` }, [
+  return el('span', { class: 'conf-badge', style: `color:${confInk(label)}` }, [
     el('span', { 'aria-hidden': 'true', text: icon + ' ' }),
     el('strong', { text: label }),
   ]);
+}
+
+/**
+ * Ink for the badge TEXT, which is separate from `confColor` because a bar fill
+ * and a word have different floors: the fill needs 3:1 (SC 1.4.11), the word
+ * needs 4.5:1 (SC 1.4.3).
+ *
+ * Only `medium` differs, and it is the whole reason this exists: it painted
+ * `var(--accent)`, which is #7e57c2 in both themes. On the dark `--surface`
+ * card that measures 3.27:1 — a real axe `color-contrast` violation, and the
+ * only one on the page. `--accent-ink` is the palette's ink variant of the same
+ * hue and measures 10.36:1 dark / 10.24:1 light. The other three labels already
+ * cleared the floor: `--ok` 6.37:1 light, `--caution` 4.82:1 light,
+ * `--ink-soft` 6.95:1 dark.
+ */
+function confInk(label: string): string {
+  return label === 'medium' ? 'var(--accent-ink)' : confColor(label);
 }
 
 function confColor(label: string): string {

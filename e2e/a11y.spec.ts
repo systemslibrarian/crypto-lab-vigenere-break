@@ -1,80 +1,62 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import {
+  boot,
+  driveAllStates,
+  expectBaselineNotStale,
+  NARROW,
+  reportCollected,
+  watchPageErrors,
+} from './gate';
 
 /**
- * WCAG regression gate. Deploys are already gated on the Vigenère unit vectors;
- * this gates them on accessibility the same way. Scans the full page — every
- * <details> expanded, both live demos driven so dynamically-injected result
- * regions (solver transcript, recovered key/plaintext, column solver, challenge
- * mode) are included — in both themes.
+ * WCAG A/AA regression gate.
+ *
+ * The lab is driven along everything it teaches: the arrival state, which on
+ * this page is an already-completed break of the Declaration sample; the skip
+ * link focused; both cipher directions; the tabula recta opened through its own
+ * button, with the active row, column and cell lit; a keyword the normaliser
+ * refuses, and an emptied plaintext; a copy confirmation while it is on screen;
+ * the solver transcript, written in one synchronous pass because reduced motion
+ * is really in effect; both text-equivalent tables opened through their
+ * summaries; all five distinct scenario verdicts — broken, ambiguous,
+ * non-English, OTP-boundary and too-short-to-try; a wrong key-length hypothesis;
+ * a column overridden by hand and then reset; the answer key revealed; challenge
+ * mode from hidden key through a spent hint to a submitted score; the cleared
+ * empty state; and the explainer in both views with each of its three spotlight
+ * columns. Every one of those states is scanned, in both themes, at desktop and
+ * phone width.
+ *
+ * Clipboard permission is granted because `dom.ts`'s `copyButton` swallows a
+ * rejected `navigator.clipboard.writeText` in a bare `catch {}`: without the
+ * grant the promise rejects, the label never changes, and the drive would be
+ * asserting against a state the code never reached.
+ *
+ * See `gate.ts` for why nothing is injected into the page, why no `<details>` is
+ * opened from script, why the lab's defaults are asserted rather than assumed,
+ * and why `violations` is not the whole oracle.
  */
 
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+for (const theme of ['dark', 'light'] as const) {
+  test(`no WCAG A/AA violations in ${theme} theme`, async ({ page, context }) => {
+    test.setTimeout(900_000);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const errors = watchPageErrors(page);
+    await boot(page, theme);
+    await driveAllStates(page, theme);
+    expect(errors, errors.join('\n')).toEqual([]);
+    expectBaselineNotStale();
+    reportCollected();
+  });
 
-async function killMotion(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content:
-      '*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}',
+  test(`no WCAG A/AA violations in ${theme} theme at 380px`, async ({ page, context }) => {
+    test.setTimeout(900_000);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const errors = watchPageErrors(page);
+    await page.setViewportSize(NARROW);
+    await boot(page, theme);
+    await driveAllStates(page, `${theme} @380px`);
+    expect(errors, errors.join('\n')).toEqual([]);
+    expectBaselineNotStale();
+    reportCollected();
   });
 }
-
-async function openAllDetails(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    for (const d of Array.from(document.querySelectorAll('details'))) {
-      (d as HTMLDetailsElement).open = true;
-    }
-  });
-}
-
-// Drive both interactive demos so every dynamically-rendered region exists in the
-// DOM before we scan: run the attack (solver transcript, recovered key/plaintext,
-// column solver grid, confidence dashboard), then flip challenge mode which
-// re-renders the solver + submit affordances.
-async function driveDemos(page: Page): Promise<void> {
-  // Reveal the class-toggled tabula recta (a large scrollable region).
-  await page.getByRole('button', { name: /Show tabula recta/ }).click();
-
-  await page.locator('#run-attack').click();
-  // Attack is animated; wait for the recovered-key output to settle.
-  await expect(page.locator('.keyout')).toBeVisible({ timeout: 15000 });
-
-  // Challenge mode surfaces a different set of controls / result banners.
-  await page.getByRole('button', { name: /Challenge/ }).click();
-  await page.locator('#run-attack').click();
-  await page.waitForTimeout(200);
-  // Back to explore so both branches' markup has been exercised.
-  await page.getByRole('button', { name: /Explore/ }).click();
-  await page.locator('#run-attack').click();
-  await expect(page.locator('.keyout')).toBeVisible({ timeout: 15000 });
-}
-
-async function scan(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  const summary = results.violations.map((v) => ({
-    id: v.id,
-    impact: v.impact,
-    help: v.help,
-    nodes: v.nodes.map((n) => n.target.join(' ')).slice(0, 5),
-  }));
-  expect(summary).toEqual([]);
-}
-
-test('no WCAG A/AA violations in dark theme', async ({ page }) => {
-  await page.goto('.');
-  await expect(page.locator('#app .cl-hero-title')).toBeVisible();
-  await killMotion(page);
-  await driveDemos(page);
-  await openAllDetails(page);
-  await scan(page);
-});
-
-test('no WCAG A/AA violations in light theme', async ({ page }) => {
-  await page.goto('.');
-  await expect(page.locator('#app .cl-hero-title')).toBeVisible();
-  await page.locator('#cl-theme-toggle').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await killMotion(page);
-  await driveDemos(page);
-  await openAllDetails(page);
-  await scan(page);
-});

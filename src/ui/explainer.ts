@@ -67,10 +67,11 @@ export function createExplainer(): HTMLElement {
     strip.append(labelCol);
     for (let i = 0; i < letters.length; i++) {
       const inCol = i % L === spotCol;
-      const cell = el('div', {
-        class: 'cell',
-        style: inCol ? 'background:color-mix(in srgb, var(--accent) 22%, transparent);border-radius:4px' : 'opacity:0.5',
-      }, [
+      // `muted`, not `opacity: 0.5`. Fading the ink toward the surface put the
+      // out-of-column letters at 3.25:1 in the light theme; `.cell.muted`
+      // restates --ink-soft instead, which is 6.26:1 there and still reads as
+      // the quieter half of the strip. See the rule in style.css.
+      const cell = el('div', { class: inCol ? 'cell spotlit' : 'cell muted' }, [
         el('span', { text: letters[i] }),
         el('span', { class: 'k', text: DEMO_KEY[i % L] }),
         el('span', { text: cipher[i] }),
