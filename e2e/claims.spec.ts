@@ -94,6 +94,18 @@ function numOf(text: string | null): number {
 
 const cipherCard = (page: Page): Locator => page.locator('section.card').filter({ has: page.locator('#cipher-input') });
 const breakCard = (page: Page): Locator => page.locator('section.card').filter({ has: page.locator('#ct-input') });
+/**
+ * The workbench's input-quality warning. Addressed by id, not by
+ * `[role="status"]`: the result banners carry that role too, so the bare
+ * attribute matches several elements once a break lands.
+ */
+const ctWarning = (page: Page): Locator => breakCard(page).locator('#ct-warn');
+/**
+ * The challenge-mode score banner. Matched on the sentence it exists to print,
+ * not on `/^.?Score/` — that anchored form can never match, because the banner's
+ * leading 🏆 is a surrogate pair and `.` consumes only one UTF-16 code unit.
+ */
+const scoreBanner = (page: Page): Locator => page.locator('.status', { hasText: /Score \d+\/100/ });
 /** Step 5 (result) is always the last rendered step of the workbench. */
 const resultStep = (page: Page): Locator => page.locator('.step').last();
 const decryptionOut = (page: Page): Locator => resultStep(page).locator('p.mono-out');
@@ -155,8 +167,11 @@ test.describe('Cipher panel', () => {
     const key = await page.locator('#cipher-key').inputValue();
     const plain = await page.locator('#cipher-input').inputValue();
 
+    // #cipher-strip, not `.strip`: the explainer card builds a second element of
+    // that class for its own fixed KEY/THEREDFOXRAN worked example, which is not
+    // what this claim is about.
     const cells = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('.strip .cell:not(.rowlabel)')).map((c) => {
+      Array.from(document.querySelectorAll('#cipher-strip .cell:not(.rowlabel)')).map((c) => {
         const s = Array.from(c.querySelectorAll('span')).map((x) => x.textContent ?? '');
         return { in: s[0], key: s[1], shift: Number(s[2]), out: s[3] };
       })
@@ -207,7 +222,7 @@ test.describe('Cipher panel', () => {
     const alert = cipherCard(page).locator('[role="alert"]');
     await expect(alert).toHaveText(/letters A.Z only/i);
     // The alignment strip is cleared rather than left showing a stale result.
-    await expect(page.locator('.strip .cell')).toHaveCount(0);
+    await expect(page.locator('#cipher-strip .cell')).toHaveCount(0);
   });
 });
 
@@ -291,9 +306,16 @@ test.describe('Break workbench: the exploit lands (Declaration / ideal case)', (
     for (let i = 0; i < key.length; i++) {
       const card = cards.nth(i);
       // The 26 chi-squared values the page shows in this column's <select>.
+      // Option text is `L (shift 11, χ²=458)`, so capture the number — a
+      // `.replace(/.*χ²=/, '')` leaves the closing paren and yields NaN.
       const shown = await card.locator('select option').evaluateAll((opts) =>
-        opts.map((o) => Number((o.textContent ?? '').replace(/.*χ²=/, '')))
+        opts.map((o) => {
+          const m = (o.textContent ?? '').match(/χ²=(∞|-?\d+(?:\.\d+)?)/);
+          if (!m) return NaN;
+          return m[1] === '∞' ? Infinity : Number(m[1]);
+        })
       );
+      expect(shown, `col ${i} chi-squared profile`).toHaveLength(26);
       const column = [...letters].filter((_, j) => j % key.length === i).join('');
       // Independently recomputed, they must agree...
       shown.forEach((chi, shift) => {
@@ -340,7 +362,7 @@ test.describe('Break workbench: the exploit lands (Declaration / ideal case)', (
     expect(other).toBe(Math.max(0, ct.length - normalize(ct).length - (ct.match(/\s/g)?.length ?? 0)));
     // No "too short" warning on a 499-letter sample.
     expect(letters).toBeGreaterThan(50);
-    await expect(breakCard(page).locator('[role="status"]')).toHaveText('');
+    await expect(ctWarning(page)).toHaveText('');
   });
 
   test('the solver transcript narrates the same key it recovered, ending in the break', async ({ page }) => {
@@ -480,7 +502,7 @@ test.describe('Failure and honest-refusal paths', () => {
     await open(page);
     await page.locator('#ct-input').fill('QWERTY ZXCVBN');
     await expect(page.locator('#ct-counts')).toHaveText('13 characters · 12 letters (analysed) · 0 punctuation/digits');
-    await expect(breakCard(page).locator('[role="status"]')).toHaveText(/Only 12 letters/);
+    await expect(ctWarning(page)).toHaveText(/Only 12 letters/);
     await expect(page.locator('.keyout')).toHaveCount(0);
     await expect(resultStep(page).locator('.status')).toContainText('only 12 letters');
   });
@@ -489,7 +511,7 @@ test.describe('Failure and honest-refusal paths', () => {
     await open(page);
     const junk = '1234567890!@#$%^&*()1234567890!@#$%^&*()1234567890AB';
     await page.locator('#ct-input').fill(junk);
-    await expect(breakCard(page).locator('[role="status"]')).toHaveText(
+    await expect(ctWarning(page)).toHaveText(
       /Most of this input is non-letters/
     );
     const counts = (await page.locator('#ct-counts').textContent()) ?? '';
@@ -542,7 +564,7 @@ test.describe('Challenge mode', () => {
     await page.getByRole('button', { name: 'Submit solution' }).click();
 
     await expect(page.locator('.keyout')).toHaveText(key);
-    const score = page.locator('.status', { hasText: /^.?Score/ });
+    const score = scoreBanner(page);
     await expect(score).toContainText('Score 100/100 (A)');
     await expect(score).toContainText(`${key.length} columns · 0 hint(s) · ${key.length} manual solve(s)`);
     await expect(score).toContainText('Plaintext reads as English — solved!');
@@ -564,7 +586,7 @@ test.describe('Challenge mode', () => {
     await page.getByRole('button', { name: 'Submit solution' }).click();
 
     const expected = 100 - 12 * hints;
-    const score = page.locator('.status', { hasText: /^.?Score/ });
+    const score = scoreBanner(page);
     await expect(score).toContainText(`Score ${expected}/100`);
     await expect(score).toContainText(`${hints} hint(s) · ${key.length - hints} manual solve(s)`);
     await expect(page.locator('.keyout')).toHaveText(key);

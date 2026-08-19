@@ -5,7 +5,7 @@
 // mode, shareable URL state, and manual overrides at every step.
 
 import { clear, copyButton, el, section } from './dom';
-import { analyzeCiphertext, runBreak, type Analysis } from '../vigenere/break';
+import { MIN_COL_FOR_IOC, analyzeCiphertext, runBreak, type Analysis } from '../vigenere/break';
 import type { BreakResult } from '../vigenere/types';
 import { decryptWithShifts, indexToLetter, normalize } from '../vigenere/cipher';
 import { ENGLISH_FREQ, letterCounts } from '../vigenere/frequency';
@@ -93,7 +93,7 @@ export function createBreakWorkbench(): HTMLElement {
   const ctInput = el('textarea', { id: 'ct-input', rows: 3, spellcheck: false, 'aria-label': 'Ciphertext to analyse' }) as HTMLTextAreaElement;
   ctInput.value = ciphertext;
   const counters = el('p', { class: 'hint', id: 'ct-counts', 'aria-live': 'polite' });
-  const warn = el('p', { class: 'hint', role: 'status', style: 'color:var(--caution)' });
+  const warn = el('p', { class: 'hint', id: 'ct-warn', role: 'status', style: 'color:var(--caution)' });
 
   ctInput.addEventListener('input', () => {
     ciphertext = ctInput.value;
@@ -256,9 +256,14 @@ export function createBreakWorkbench(): HTMLElement {
     const norm = normalize(ciphertext).length;
     const nonAlpha = raw - norm - (ciphertext.match(/\s/g)?.length ?? 0);
     counters.textContent = `${raw} characters · ${norm} letters (analysed) · ${Math.max(0, nonAlpha)} punctuation/digits`;
-    warn.textContent = '';
-    if (norm > 0 && norm < 50) warn.textContent = `⚠ Only ${norm} letters — likely too short for reliable statistics (need ~50+).`;
-    else if (raw > 0 && norm / raw < 0.4) warn.textContent = '⚠ Most of this input is non-letters; only letters are analysed.';
+    // Both facts, cause first. These used to be an if/else chain, and the
+    // "too short" arm always won: paste 52 characters holding 2 letters and the
+    // page said "Only 2 letters", never that it had discarded 96% of the input.
+    // The letter count is the symptom; the non-letters are the reason.
+    const notes: string[] = [];
+    if (raw > 0 && norm / raw < 0.4) notes.push('Most of this input is non-letters; only letters are analysed.');
+    if (norm > 0 && norm < 50) notes.push(`Only ${norm} letters — likely too short for reliable statistics (need ~50+).`);
+    warn.textContent = notes.length > 0 ? `⚠ ${notes.join(' ')}` : '';
   }
 
   // — Progress rail —
@@ -333,6 +338,16 @@ export function createBreakWorkbench(): HTMLElement {
       ]));
     }
     body.append(bars);
+
+    // The chart stops where the statistic stops meaning anything: beyond this
+    // period every column holds fewer than MIN_COL_FOR_IOC letters and its IoC
+    // swings by chance rather than by structure, so the diagnosis has always
+    // ignored it. Say why, instead of leaving a reader to wonder where the rest
+    // of the periods went — on the OTP-boundary sample that thinness IS the lesson.
+    const charted = a.iocCandidates.length ? a.iocCandidates[a.iocCandidates.length - 1].period : 0;
+    if (charted >= 1 && charted < maxKeyLength) {
+      body.append(el('p', { class: 'hint', text: `Periods above ${charted} are not charted: across ${a.letters.length} letters each column would hold fewer than ${MIN_COL_FOR_IOC}, and an IoC from columns that thin swings high by chance rather than by structure. As the key approaches the message length there is nothing left to measure — that is the one-time-pad boundary.` }));
+    }
 
     const tbl = el('table');
     tbl.append(el('thead', {}, [el('tr', {}, [el('th', { text: 'Period L' }), el('th', { text: 'Avg IoC' }), el('th', { text: 'English-like?' })])]));

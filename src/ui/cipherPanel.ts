@@ -35,7 +35,9 @@ export function createCipherPanel(): HTMLElement {
   const outWrap = el('div');
   // Horizontally scrollable alignment strip needs keyboard access + a name.
   const stripWrap = el('div', { class: 'strip-wrap', tabindex: '0', role: 'group', 'aria-label': 'Per-letter alignment strip (scroll horizontally)' });
-  const strip = el('div', { class: 'strip', role: 'img' });
+  // `.strip` is shared styling — the explainer builds a second, unrelated one
+  // for its worked KEY/THEREDFOXRAN example — so this one carries an id.
+  const strip = el('div', { class: 'strip', id: 'cipher-strip', role: 'img' });
   stripWrap.append(strip);
 
   const tableau = createTableau();

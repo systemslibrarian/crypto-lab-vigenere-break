@@ -44,6 +44,23 @@ export const MIN_LETTERS_FOR_STATS = 50;
  */
 export const MIN_COL_FOR_IOC = 8;
 
+/**
+ * The largest period whose averaged IoC is worth *reporting* — the same bar
+ * `diagnoseKeyLength` already applies before it will consider a period, since
+ * `Math.floor(N / p) >= MIN_COL_FOR_IOC` is exactly `p <= Math.floor(N / MIN_COL_FOR_IOC)`.
+ *
+ * The diagnosis has always ignored thinner periods; the chart plotted them
+ * anyway. On the 61-letter OTP-boundary sample that printed "L=13 → 0.0641"
+ * (English is ≈0.0667, the English-like floor 0.058) from four-letter columns,
+ * directly above the banner reading "No period produces an English-like IoC" —
+ * the page contradicting itself in the one exhibit whose whole lesson is that
+ * there is nothing here to find. A number the analysis will not stand behind
+ * does not belong on the chart.
+ */
+export function measurablePeriodCap(letters: string, maxKeyLength: number): number {
+  return Math.min(maxKeyLength, Math.floor(letters.length / MIN_COL_FOR_IOC));
+}
+
 /** Minimum letters per column for chi-squared frequency analysis to be reliable. */
 export const MIN_COLUMN_LENGTH = 12;
 
@@ -170,7 +187,7 @@ export function analyzeCiphertext(
 ): Analysis {
   const letters = normalize(ciphertext);
   const kas = kasiski(letters, { maxKeyLength });
-  const iocs = iocCandidates(letters, maxKeyLength);
+  const iocs = iocCandidates(letters, measurablePeriodCap(letters, maxKeyLength));
   const diagnosis = diagnoseKeyLength(letters, kas, iocs);
   return { letters, kasiski: kas, iocCandidates: iocs, diagnosis };
 }
@@ -209,7 +226,7 @@ export function runBreak(ciphertext: string, options: BreakOptions = {}): BreakR
   const letters = normalize(ciphertext);
 
   const kas = kasiski(letters, { maxKeyLength });
-  const iocs = iocCandidates(letters, maxKeyLength);
+  const iocs = iocCandidates(letters, measurablePeriodCap(letters, maxKeyLength));
   const diagnosis = diagnoseKeyLength(letters, kas, iocs);
 
   const tooShort = letters.length < MIN_LETTERS_FOR_STATS;
