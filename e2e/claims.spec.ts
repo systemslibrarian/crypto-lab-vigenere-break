@@ -328,16 +328,20 @@ test.describe('Break workbench: the exploit lands (Declaration / ideal case)', (
     }
   });
 
-  test('the headline verdict is BROKEN and the quality score behind it agrees', async ({ page }) => {
+  test('bundled answer verification agrees with the independent plaintext and key', async ({ page }) => {
     await open(page);
-    await expect(page.locator('.status.alarm', { hasText: /Cipher broken/ })).toContainText(
-      /recovered from ciphertext alone/
-    );
+    await expect(page.locator('.status.alarm', { hasText: /Verified against the bundled answer/ })).toContainText(/both the known key and plaintext/);
+    const key = (await page.locator('.keyout').textContent()) ?? '';
+    const plain = (await decryptionOut(page).textContent()) ?? '';
+    expect(key).toBe('LEMON');
+    expect(normalize(plain)).toBe(decryptLetters(normalize(await ciphertextOf(page)), 'LEMON'));
+    expect(plain).toContain('WHEN IN THE COURSE');
     const quality = (await page.locator('.status', { hasText: /English quality/ }).textContent()) ?? '';
     expect(quality).toContain('reads as English');
-    // "reads as English" is the label for combined >= 60%; check the number it printed.
-    const combined = numOf(quality.match(/combined (\d+)%/)![0]);
+    // The heuristic is separately displayed, and never acts as the verifier.
+    const combined = numOf(quality.match(/combined heuristic (\d+)%/)![0]);
     expect(combined).toBeGreaterThanOrEqual(60);
+    expect(quality).toContain('not a probability or verification');
     // All four progress-rail stages complete.
     await expect(page.locator('.rail-step.done')).toHaveCount(4);
     await expect(page.locator('.rail-step.fail, .rail-step.pending')).toHaveCount(0);
@@ -349,7 +353,7 @@ test.describe('Break workbench: the exploit lands (Declaration / ideal case)', (
     await page.getByRole('button', { name: /Reveal true key/ }).click();
     const banner = page.locator('.status', { hasText: /True key/ });
     await expect(banner).toContainText(`True key: ${key}.`);
-    await expect(banner).toContainText('Matches your recovery.');
+    await expect(banner).toContainText('Your candidate key and plaintext match the bundled answer.');
   });
 
   test('the ciphertext counters describe the ciphertext actually in the box', async ({ page }) => {
@@ -365,12 +369,12 @@ test.describe('Break workbench: the exploit lands (Declaration / ideal case)', (
     await expect(ctWarning(page)).toHaveText('');
   });
 
-  test('the solver transcript narrates the same key it recovered, ending in the break', async ({ page }) => {
+  test('the solver transcript narrates its candidate without claiming verification', async ({ page }) => {
     await open(page);
     const key = (await page.locator('.keyout').textContent()) ?? '';
     await page.locator('#run-attack').click();
     const log = page.locator('#transcript .mono-out');
-    await expect(log).toContainText('Decryption reads as English', { timeout: 20000 });
+    await expect(log).toContainText('plausible candidate only', { timeout: 20000 });
     const text = (await log.textContent()) ?? '';
     expect(text).toContain(`Assembled key: ${key}.`);
     expect(text).toContain(`peak at L=${key.length}`);
@@ -404,7 +408,7 @@ test.describe('Failure and honest-refusal paths', () => {
     await expect(page.locator('.rail-step.done')).toHaveCount(0);
   });
 
-  test('OTP boundary: no English-like period is flagged when the verdict says there is none', async ({ page }) => {
+  test('long predictable key: no English-like period is flagged when the verdict says there is none', async ({ page }) => {
     await open(page);
     await pickSample(page, 'boundary');
 
@@ -421,6 +425,8 @@ test.describe('Failure and honest-refusal paths', () => {
     for (const row of rows) expect(row.ioc).toBeLessThan(0.058);
     await expect(resultStep(page).locator('.status')).toContainText(/inconclusive/);
     await expect(page.locator('.keyout')).toHaveCount(0);
+    await expect(page.locator('#sample-meta')).toContainText('predictable');
+    await expect(page.locator('#sample-meta')).not.toContainText('effectively unbreakable');
   });
 
   test('non-English plaintext: the key length resolves but the English check still fails', async ({ page }) => {
@@ -432,11 +438,11 @@ test.describe('Failure and honest-refusal paths', () => {
     const plaintext = (await decryptionOut(page).textContent()) ?? '';
     // The arithmetic is sound — this really is the decryption...
     expect(encryptLetters(plaintext, key)).toBe(normalize(ct));
-    // ...but the English model is the wrong one, so the verdict is NOT "broken".
+    // ...but the English model is the wrong one, so there is no verified verdict.
     await expect(page.locator('.status', { hasText: /English quality/ })).not.toContainText(
       'reads as English'
     );
-    await expect(page.locator('.status.alarm', { hasText: /Cipher broken/ })).toHaveCount(0);
+    await expect(page.locator('.status.alarm', { hasText: /Verified against the bundled answer/ })).toHaveCount(0);
     await expect(resultStep(page)).toContainText(/not English|Partially readable/i);
     // The final rail stage never completes.
     await expect(page.locator('.rail-step').last()).toHaveClass(/active/);
@@ -458,7 +464,7 @@ test.describe('Failure and honest-refusal paths', () => {
     expect(encryptLetters(plaintext, key)).toBe(normalize(ct));
     // ...but it is not English and the page does not claim a break.
     expect(plaintext.toUpperCase()).not.toContain('WHEN IN THE COURSE');
-    await expect(page.locator('.status.alarm', { hasText: /Cipher broken/ })).toHaveCount(0);
+    await expect(page.locator('.status.alarm', { hasText: /Verified against the bundled answer/ })).toHaveCount(0);
     await expect(page.locator('.status', { hasText: /English quality/ })).toContainText(
       /gibberish|partially readable/i
     );
@@ -567,7 +573,20 @@ test.describe('Challenge mode', () => {
     const score = scoreBanner(page);
     await expect(score).toContainText('Score 100/100 (A)');
     await expect(score).toContainText(`${key.length} columns · 0 hint(s) · ${key.length} manual solve(s)`);
-    await expect(score).toContainText('Plaintext reads as English — solved!');
+    await expect(score).toContainText('Verified: key and plaintext match the bundled answer.');
+  });
+
+  test('wrong manual key cannot pass challenge despite a plausible decryption', async ({ page }) => {
+    await open(page);
+    await page.getByRole('button', { name: /Challenge/ }).click();
+    for (const [i, shift] of [12, 4, 12, 14, 13].entries()) {
+      await page.locator('.col-card').nth(i).locator('select').selectOption(String(shift));
+    }
+    await page.getByRole('button', { name: 'Submit solution' }).click();
+    await expect(page.locator('.keyout')).toHaveText('MEMON');
+    await expect(scoreBanner(page)).toContainText('Score 0/100');
+    await expect(scoreBanner(page)).toContainText('Not verified against the bundled answer');
+    await expect(page.locator('.rail-step').last()).toHaveClass(/active/);
   });
 
   test('hints are charged at 12 points each, exactly as the score claims', async ({ page }) => {

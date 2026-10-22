@@ -50,7 +50,7 @@ export const MIN_COL_FOR_IOC = 8;
  * `Math.floor(N / p) >= MIN_COL_FOR_IOC` is exactly `p <= Math.floor(N / MIN_COL_FOR_IOC)`.
  *
  * The diagnosis has always ignored thinner periods; the chart plotted them
- * anyway. On the 61-letter OTP-boundary sample that printed "L=13 → 0.0641"
+ * anyway. On the 61-letter long-key sample that printed "L=13 → 0.0641"
  * (English is ≈0.0667, the English-like floor 0.058) from four-letter columns,
  * directly above the banner reading "No period produces an English-like IoC" —
  * the page contradicting itself in the one exhibit whose whole lesson is that
@@ -117,7 +117,7 @@ export function diagnoseKeyLength(
   // period does not even reach it, NOTHING here is English-like, and flagging a
   // cluster of near-random periods as "English-like ◆ peaks" contradicts the
   // "No period produces an English-like IoC" verdict the UI shows alongside it
-  // (visible on the OTP-boundary sample, where it undercut the whole lesson).
+  // (visible on the long-key sample, where it undercut the sparse-column lesson).
   const strongIocPeriods =
     maxIoc >= IOC_MAX_FLOOR
       ? usable
@@ -258,16 +258,16 @@ export function runBreak(ciphertext: string, options: BreakOptions = {}): BreakR
   const plaintext = decryptWithShifts(ciphertext, shifts).text;
 
   // Low-confidence flag: columns too thin for reliable chi-squared, or the
-  // chosen length approaches the text length (the OTP boundary).
+  // chosen length approaches the text length (sparse columns, not OTP status).
   const minColLen = Math.floor(letters.length / keyLength);
-  const nearOtp = keyLength >= letters.length / 2;
+  const nearMessageLength = keyLength >= letters.length / 2;
   const thinColumns = minColLen < MIN_COLUMN_LENGTH;
 
   let inconclusive = false;
   let note = '';
-  if (nearOtp) {
+  if (nearMessageLength) {
     inconclusive = true;
-    note = `Key length ${keyLength} approaches the ciphertext length (${letters.length}) — this is the one-time-pad boundary, where each column has too few letters to analyse and the cipher becomes effectively unbreakable by these methods.`;
+    note = `Key length ${keyLength} approaches the ciphertext length (${letters.length}) — each column has too few letters for this solver to analyse. Inconclusive statistics do not establish secrecy; a predictable key is not a one-time pad.`;
   } else if (thinColumns) {
     inconclusive = true;
     note = `At key length ${keyLength} each column holds only ~${minColLen} letters (< ${MIN_COLUMN_LENGTH}); chi-squared column solving is unreliable here. Treat the recovered key as low-confidence.`;

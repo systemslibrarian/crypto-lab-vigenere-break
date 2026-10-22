@@ -58,7 +58,7 @@ export function buildTranscript(analysis: Analysis, result: BreakResult): string
   const q = plaintextQuality(result.plaintext);
   lines.push(`Assembled key: ${result.key}.`);
   if (q.label === 'reads as English') {
-    lines.push('Decryption reads as English → the cipher is broken. The exploit landed.');
+    lines.push('Decryption looks English-like → plausible candidate only. This score cannot verify a key; compare against a known answer when available.');
   } else if (q.label === 'partially readable') {
     lines.push('Decryption is only partially readable — one or more columns are off, or the language is not English. Inspect the weak columns.');
   } else {

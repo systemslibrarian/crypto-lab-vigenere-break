@@ -2,27 +2,28 @@
 
 ## What It Is
 
-The **Vigenère cipher** is a polyalphabetic substitution cipher: each plaintext letter is shifted by the corresponding letter of a repeating keyword, i.e. `c_i = (p_i + k_(i mod L)) mod 26`. It solves the weakness of a simple Caesar/monoalphabetic cipher — a single fixed shift that flat letter-frequency analysis cracks instantly — by cycling through `L` different shifts. It is a **symmetric** scheme: the same short keyword both encrypts and decrypts, and it is **not** secure by modern standards. This demo implements the cipher *and* its classical break — **Kasiski examination**, the **index of coincidence**, and per-column **chi-squared frequency analysis** — to recover the key from ciphertext alone. The whole point is that a short, repeating key is breakable; a key as long as the message and never reused (a one-time pad) is not.
+The **Vigenère cipher** is a polyalphabetic substitution cipher: each plaintext letter is shifted by the corresponding letter of a repeating keyword, i.e. `c_i = (p_i + k_(i mod L)) mod 26`. It solves the weakness of a simple Caesar/monoalphabetic cipher — a single fixed shift that flat letter-frequency analysis cracks instantly — by cycling through `L` different shifts. It is a **symmetric** scheme: the same short keyword both encrypts and decrypts, and it is **not** secure by modern standards. This demo implements the cipher *and* its classical break — **Kasiski examination**, the **index of coincidence**, and per-column **chi-squared frequency analysis** — to propose a key from ciphertext alone. The workbench verifies a candidate only when both its key and plaintext match a bundled known answer. A long predictable key is not a one-time pad: an OTP needs an independent, uniformly random, secret key of at least the message length, used only once.
 
 ## When to Use It
 
 - **Teaching how classical cryptanalysis actually works** — Kasiski spacing, index of coincidence, and frequency analysis are visible end-to-end here, which is why Vigenère is the canonical worked example.
 - **Understanding why key reuse is fatal** — the repeating key is exactly what the break exploits, a lesson that carries directly into modern stream-cipher and one-time-pad discipline.
 - **Puzzles, CTFs, and historical recreation** — Vigenère shows up in beginner crypto challenges and 16th–19th-century historical contexts where this is the right period-accurate tool.
-- **Do NOT use it to protect real data.** It has no computational security: given enough ciphertext, the key falls out by hand, as this demo demonstrates. For confidentiality use an authenticated modern cipher (e.g. AES-GCM or ChaCha20-Poly1305); for theoretical unbreakability with a one-time key, see the OTP Vault demo.
+- **Do NOT use it to protect real data.** A short repeating key has no modern security: sufficient ciphertext enables statistical attacks, as this demo illustrates. For confidentiality use an authenticated modern cipher (e.g. AES-GCM or ChaCha20-Poly1305); for the theoretical result with an independent random one-time pad, see the OTP Vault demo.
 
 ## Live Demo
 
 **[systemslibrarian.github.io/crypto-lab-vigenere-break](https://systemslibrarian.github.io/crypto-lab-vigenere-break/)**
 
-Encrypt and decrypt text with a keyword (the panel shows the per-letter key alignment and an optional tabula recta), then **break a real ciphertext step by step**. The break workbench walks Kasiski examination → index of coincidence → per-column chi-squared solving → recovered key → full decryption, with controls for the **plaintext/keyword input**, **ciphertext input**, **key-length selector**, and **per-column shift override**, plus a guided challenge mode. Every statistic is computed live from the ciphertext — nothing is hardcoded, and it honestly reports when the text is too short to break.
+Encrypt and decrypt text with a keyword (the panel shows the per-letter key alignment and an optional tabula recta), then **attempt to break a ciphertext step by step**. The break workbench walks Kasiski examination → index of coincidence → per-column chi-squared solving → candidate key → decryption, with controls for the **plaintext/keyword input**, **ciphertext input**, **key-length selector**, and **per-column shift override**, plus a guided challenge mode. Every statistic is computed live from the ciphertext. Its English-quality number ranks plausibility; it is not a probability of correctness. A bundled sample's reference key and plaintext are used only to check a candidate after solving, never to select its shifts. Custom ciphertext has no answer key and cannot receive a verified verdict or score. Manual shifts and hints are labeled as user input.
 
 ## What Can Go Wrong
 
 - Too little ciphertext defeats the break: Kasiski needs repeated factors and the index of coincidence and per-column chi-squared analysis need enough letters per column to be statistically meaningful.
 - A wrong key-length guess misaligns every column, so the chi-squared solver locks onto plausible-but-wrong shifts and produces garbage plaintext.
 - Frequency analysis assumes a known plaintext language; text that is not standard English (or a different alphabet entirely) shifts the expected distribution and misleads the solver.
-- A key as long as the message and never reused is no longer a Vigenère weakness but a one-time pad — this break cannot recover it, which is exactly the lesson.
+- Sparse columns can make this statistical solver inconclusive without making a ciphertext secure. The bundled long-key sample uses a predictable English phrase shorter than the message, so the key repeats. Key length and non-reuse alone do not imply a one-time pad or perfect secrecy; see the independent random-key conditions in [RFC 4949](https://www.rfc-editor.org/rfc/rfc4949#section-6) and [Shannon (1949)](https://doi.org/10.1002/j.1538-7305.1949.tb00928.x).
+- A wrong key can produce an English-like candidate. For example, a long English passage encrypted under `LEMON` can still score about 0.686 on this demo's heuristic when decrypted under `MEMON`; the bundle's answer check prevents that from being called verified. For custom text, compare against independent evidence yourself.
 - Reusing the same keyword across many messages multiplies the exposed material and makes recovery easier, the historical reason Vigenère eventually fell.
 
 ## Real-World Usage
@@ -44,8 +45,14 @@ npm run dev
 ## Related Demos
 - [crypto-lab-dead-sea-cipher](https://systemslibrarian.github.io/crypto-lab-dead-sea-cipher/) — substitution, Vigenère, and Atbash classical ciphers in one place.
 - [crypto-lab-enigma-forge](https://systemslibrarian.github.io/crypto-lab-enigma-forge/) — another historical cipher and its mechanized break (the Bombe).
-- [crypto-lab-otp-vault](https://systemslibrarian.github.io/crypto-lab-otp-vault/) — the one-time pad: what Vigenère becomes when the key stops repeating, plus the two-time-pad failure.
+- [crypto-lab-otp-vault](https://systemslibrarian.github.io/crypto-lab-otp-vault/) — independent uniformly random secret pad material, once per message, and the two-time-pad failure.
 - [crypto-lab-world-ciphers](https://systemslibrarian.github.io/crypto-lab-world-ciphers/) — modern symmetric block ciphers, the secure successors to classical substitution.
+
+## Sources
+
+- Bernhard Esslinger, [*Learning and Experiencing Cryptography with CrypTool and SageMath*](https://www.cryptool.org/en/ctbook/) (Artech House, 2024), chapter 3 on historical ciphers and Vigenère analysis.
+- J. Shirey, [RFC 4949, *Internet Security Glossary, Version 2*](https://www.rfc-editor.org/rfc/rfc4949#section-6) (IETF, August 2007), “one-time pad.”
+- C. E. Shannon, [*Communication Theory of Secrecy Systems*](https://doi.org/10.1002/j.1538-7305.1949.tb00928.x) (Bell System Technical Journal, 1949), perfect secrecy.
 
 ---
 

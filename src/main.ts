@@ -45,9 +45,22 @@ const intro = el('section', { class: 'intro' }, [
   }),
   el('p', { class: 'what-isnt' }, [
     document.createTextNode(
-      "What this isn't: not a one-time pad (a key as long as the message, never reused, is unbreakable — that's the OTP Vault demo). Vigenère breaks precisely because its key is SHORT and REPEATS. Not autokey/running-key variants (a noted future extension). Not a general substitution solver. Nothing here is stored or sent anywhere — it all runs in your browser."
+      "What this isn't: this Vigenère demo uses repeating keywords, not a one-time pad. An OTP requires an independent, uniformly random secret key of at least the message length that is used only once; merely writing a long predictable key does not suffice. An inconclusive statistical attack is not a security guarantee. Not autokey/running-key variants (a noted future extension). Not a general substitution solver. Nothing here is stored or sent anywhere — it all runs in your browser."
     ),
   ]),
 ]);
 
-app.append(hero, intro, createCipherPanel(), createBreakWorkbench(), createExplainer());
+const reading = el('section', { class: 'card' }, [
+  el('h2', { text: 'Sources & further reading' }),
+  el('p', {}, [
+    document.createTextNode('For worked Vigenère analysis, see '),
+    el('a', { href: 'https://www.cryptool.org/en/ctbook/' , target: '_blank', rel: 'noopener noreferrer', text: 'Bernhard Esslinger, Learning and Experiencing Cryptography with CrypTool and SageMath (2024), chapter 3' }),
+    document.createTextNode('. For the precise one-time-pad distinction, see '),
+    el('a', { href: 'https://www.rfc-editor.org/rfc/rfc4949#section-6', target: '_blank', rel: 'noopener noreferrer', text: 'IETF RFC 4949, Internet Security Glossary (2007), “one-time pad”' }),
+    document.createTextNode(' and '),
+    el('a', { href: 'https://onlinelibrary.wiley.com/doi/10.1002/j.1538-7305.1949.tb00928.x', target: '_blank', rel: 'noopener noreferrer', text: 'Claude Shannon, Communication Theory of Secrecy Systems (1949)' }),
+    document.createTextNode('. The displayed English quality is this demo’s ranking heuristic, not a verification or a probability.'),
+  ]),
+]);
+
+app.append(hero, intro, createCipherPanel(), createBreakWorkbench(), createExplainer(), reading);

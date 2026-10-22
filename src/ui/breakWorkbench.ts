@@ -24,7 +24,7 @@ const REDUCED_MOTION =
 export function createBreakWorkbench(): HTMLElement {
   const card = section(
     'Break workbench · cryptanalysis',
-    'Recover a Vigenère key from ciphertext alone. When the key falls out and English emerges, the cipher has FAILED — that is the exploit landing.'
+    'Try to recover a Vigenère key from ciphertext alone. English-like output is a lead; a bundled answer can independently confirm a match.'
   );
 
   // — State —
@@ -48,6 +48,18 @@ export function createBreakWorkbench(): HTMLElement {
 
   function currentSample(): Sample | undefined {
     return sampleId ? sampleById(sampleId) : SAMPLES.find((s) => s.ciphertext === ciphertext);
+  }
+
+  // The reference key/plaintext are used only *after* the candidate has been
+  // produced, never by the frequency solver. Custom text has no known answer.
+  function candidate(result: BreakResult) {
+    const shifts = result.columns.map((c) => shiftOverrides.has(c.index) ? shiftOverrides.get(c.index)! : mode === 'challenge' ? 0 : c.bestShift);
+    const key = shifts.map(indexToLetter).join('');
+    const plaintext = decryptWithShifts(ciphertext, shifts).text;
+    const sample = currentSample();
+    const verified = !!sample && !result.inconclusive && (mode !== 'challenge' || challengeSubmitted) &&
+      key === sample.solutionKey && plaintext === sample.plaintext.toUpperCase();
+    return { key, plaintext, sample, verified };
   }
 
   function syncUrl() {
@@ -272,12 +284,12 @@ export function createBreakWorkbench(): HTMLElement {
     const hasRepeats = analysis.kasiski.repeats.length > 0;
     const hasLength = result.keyLength >= 1;
     const hasColumns = result.columns.length > 0;
-    const readable = hasColumns && plaintextQuality(result.plaintext).label === 'reads as English';
+    const verified = hasColumns && candidate(result).verified;
     const stages: [string, 'done' | 'active' | 'pending' | 'fail'][] = [
       ['Repeats found', hasRepeats ? 'done' : 'fail'],
       ['Key length', hasLength ? 'done' : 'pending'],
       ['Column shifts', hasColumns ? 'done' : 'pending'],
-      ['Plaintext recovered', readable ? 'done' : hasColumns ? 'active' : 'pending'],
+      ['Answer verified', verified ? 'done' : hasColumns ? 'active' : 'pending'],
     ];
     const rail = el('ol', { class: 'rail', 'aria-label': 'attack progress' });
     stages.forEach(([label, st], i) => {
@@ -343,10 +355,10 @@ export function createBreakWorkbench(): HTMLElement {
     // period every column holds fewer than MIN_COL_FOR_IOC letters and its IoC
     // swings by chance rather than by structure, so the diagnosis has always
     // ignored it. Say why, instead of leaving a reader to wonder where the rest
-    // of the periods went — on the OTP-boundary sample that thinness IS the lesson.
+    // of the periods went — on the long-key sample that thinness IS the lesson.
     const charted = a.iocCandidates.length ? a.iocCandidates[a.iocCandidates.length - 1].period : 0;
     if (charted >= 1 && charted < maxKeyLength) {
-      body.append(el('p', { class: 'hint', text: `Periods above ${charted} are not charted: across ${a.letters.length} letters each column would hold fewer than ${MIN_COL_FOR_IOC}, and an IoC from columns that thin swings high by chance rather than by structure. As the key approaches the message length there is nothing left to measure — that is the one-time-pad boundary.` }));
+      body.append(el('p', { class: 'hint', text: `Periods above ${charted} are not charted: across ${a.letters.length} letters each column would hold fewer than ${MIN_COL_FOR_IOC}, and an IoC from columns that thin swings high by chance rather than by structure. This solver lacks evidence at long periods; it does not establish secrecy or imply a one-time pad.` }));
     }
 
     const tbl = el('table');
@@ -485,7 +497,7 @@ export function createBreakWorkbench(): HTMLElement {
   // — Step 4/5: Result —
   function renderResultStep(a: Analysis, result: BreakResult): HTMLElement {
     const challenge = mode === 'challenge';
-    const { step, body } = stepParts(challenge ? 5 : 5, 'Result · recovered key & plaintext', 'The recovery is honest, not auto-snapped. If a column is off, the plaintext reads as garbage — go back and nudge it.');
+    const { step, body } = stepParts(5, 'Result · candidate key & decryption', 'The solver ranks candidates from statistics. Check the output and adjust weak columns; readability alone cannot verify the key.');
 
     if (result.keyLength < 1 || result.columns.length === 0) {
       body.append(banner('caution', '⛔', result.note || 'Inconclusive — no key recovered.'));
@@ -493,9 +505,7 @@ export function createBreakWorkbench(): HTMLElement {
     }
 
     // The key/plaintext shown reflect current overrides (challenge: only after submit/hints).
-    const shifts = result.columns.map((c) => (shiftOverrides.has(c.index) ? shiftOverrides.get(c.index)! : challenge ? 0 : c.bestShift));
-    const shownKey = shifts.map((s) => indexToLetter(s)).join('');
-    const shownPlain = decryptWithShifts(ciphertext, shifts).text;
+    const { key: shownKey, plaintext: shownPlain, sample, verified } = candidate(result);
     const quality = plaintextQuality(shownPlain);
 
     if (result.inconclusive) body.append(banner('caution', '⚠', result.note));
@@ -509,17 +519,19 @@ export function createBreakWorkbench(): HTMLElement {
     }
 
     body.append(el('div', { class: 'controls' }, [
-      el('span', { text: 'Recovered key:' }),
+      el('span', { text: 'Candidate key:' }),
       el('span', { class: 'keyout', text: shownKey }),
       el('span', { class: 'hint', text: `(length ${result.keyLength})` }),
       copyButton(() => shownKey, 'Copy key'),
     ]));
+    if (shiftOverrides.size > 0) body.append(el('p', { class: 'hint', text: `This candidate includes ${shiftOverrides.size} manually chosen or hinted column shift(s); it is not solely the solver's output.` }));
 
     // Quality dashboard.
     body.append(renderQuality(quality));
 
     if (!result.inconclusive) {
-      if (quality.label === 'reads as English') body.append(banner('alarm', '🔓', 'Cipher broken. The key was recovered from ciphertext alone and the plaintext reads as English — a short repeating key is fatal to Vigenère.'));
+      if (verified) body.append(banner('alarm', '🔓', `Verified against the bundled answer: ${shiftOverrides.size ? 'your candidate' : "the solver's candidate"} matches both the known key and plaintext. This short repeating key was recovered${shiftOverrides.size ? ' with your input' : ' by the ciphertext-only solver'}.`));
+      else if (quality.label === 'reads as English') body.append(banner('info', '🔎', `${sample ? 'English-like candidate, but it does not match the bundled key and plaintext.' : 'English-like candidate; custom ciphertext has no bundled answer for verification.'} Readability is a heuristic, not proof of a break.`));
       else if (quality.label === 'partially readable') body.append(banner('info', '🛠', 'Partially readable. Either a column is still wrong (check the confidence dashboard) or the plaintext is not English (see the Latin scenario).'));
       else body.append(banner('info', '🛠', 'Not English yet — one or more columns are off. Use the confidence dashboard to find the weakest column.'));
     }
@@ -528,33 +540,28 @@ export function createBreakWorkbench(): HTMLElement {
     body.append(el('p', { class: 'mono-out', 'aria-live': 'polite', text: shownPlain }));
 
     // Challenge scoring.
-    if (challenge && challengeSubmitted) body.append(renderScore(result, quality));
+    if (challenge && challengeSubmitted) body.append(renderScore(result, verified, sample));
 
     // Reveal true key (samples only).
-    const s = currentSample();
-    if (s) {
+    if (sample) {
       const revealBtn = el('button', { type: 'button', text: revealKey ? 'Hide answer' : 'Reveal true key (check)' });
       revealBtn.addEventListener('click', () => { revealKey = !revealKey; render(); });
       body.append(el('div', { style: 'margin-top:0.6rem' }, [revealBtn]));
       if (revealKey) {
-        const match = s.solutionKey === shownKey;
-        body.append(banner(match ? 'ok' : 'caution', match ? '✓' : '✗', `True key: ${s.solutionKey}. ${match ? 'Matches your recovery.' : 'Does not match yet — keep iterating.'}`));
+        body.append(banner(verified ? 'ok' : 'caution', verified ? '✓' : '✗', `True key: ${sample.solutionKey}. ${verified ? 'Your candidate key and plaintext match the bundled answer.' : 'Your candidate does not match the bundled answer yet — keep iterating.'}`));
       }
     }
     void a;
     return step;
   }
 
-  function renderScore(result: BreakResult, quality: ReturnType<typeof plaintextQuality>): HTMLElement {
+  function renderScore(result: BreakResult, verified: boolean, sample?: Sample): HTMLElement {
     const hints = hintedColumns.size;
     const manual = [...shiftOverrides.keys()].filter((i) => !hintedColumns.has(i)).length;
-    const solved = quality.label === 'reads as English';
-    let score = solved ? 100 : quality.label === 'partially readable' ? 55 : 15;
-    score -= hints * 12;
-    score = Math.max(0, Math.min(100, Math.round(score)));
+    if (!sample) return banner('info', '🔎', 'No verified score for custom ciphertext: there is no bundled answer to check. English quality is only a heuristic.');
+    const score = verified ? Math.max(0, 100 - hints * 12) : 0;
     const grade = score >= 85 ? 'A' : score >= 70 ? 'B' : score >= 50 ? 'C' : 'keep trying';
-    const kind = solved ? 'alarm' : 'caution';
-    return banner(kind, solved ? '🏆' : '🔁', `Score ${score}/100 (${grade}). ${result.keyLength} columns · ${hints} hint(s) · ${manual} manual solve(s). ${solved ? 'Plaintext reads as English — solved!' : 'Plaintext is not fully English yet.'}`);
+    return banner(verified ? 'alarm' : 'caution', verified ? '🏆' : '🔁', `Score ${score}/100 (${grade}). ${result.keyLength} columns · ${hints} hint(s) · ${manual} manual solve(s). ${verified ? 'Verified: key and plaintext match the bundled answer.' : 'Not verified against the bundled answer; English-likeness alone cannot pass the challenge.'}`);
   }
 
   render();
@@ -571,7 +578,7 @@ function categoryLabel(c: Sample['category']): string {
     medium: 'Medium',
     ambiguous: 'Needs nudging',
     short: 'Too short (fails)',
-    boundary: 'OTP boundary',
+    boundary: 'Long key, sparse columns',
     'non-english': 'Non-English',
   }[c];
 }
@@ -702,7 +709,7 @@ function renderQuality(q: ReturnType<typeof plaintextQuality>): HTMLElement {
   const kind = q.label === 'reads as English' ? 'ok' : q.label === 'partially readable' ? 'caution' : 'info';
   const wrap = el('div', { class: `status ${kind}`, style: 'flex-direction:column;align-items:stretch;gap:0.3rem' });
   wrap.append(el('div', {}, [el('span', { class: 'ico', 'aria-hidden': 'true', text: '📖 ' }), el('strong', { text: `English quality: ${q.label}` })]));
-  wrap.append(el('div', { class: 'hint', style: 'margin:0', text: `word-hit ${(q.wordHitRate * 100).toFixed(0)}% · common-bigrams ${(q.bigramScore * 100).toFixed(0)}% · IoC ${q.ioc.toFixed(4)} · combined ${(q.combined * 100).toFixed(0)}%` }));
+  wrap.append(el('div', { class: 'hint', style: 'margin:0', text: `word-hit ${(q.wordHitRate * 100).toFixed(0)}% · common-bigrams ${(q.bigramScore * 100).toFixed(0)}% · IoC ${q.ioc.toFixed(4)} · combined heuristic ${(q.combined * 100).toFixed(0)}% (not a probability or verification)` }));
   return wrap;
 }
 

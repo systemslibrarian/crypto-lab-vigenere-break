@@ -35,9 +35,12 @@ describe('Bundled samples', () => {
     expect(plaintextQuality(r.plaintext).label).not.toBe('reads as English');
   });
 
-  it('boundary (near-OTP) sample is inconclusive on auto-break', () => {
-    const r = runBreak(sampleById('boundary')!.ciphertext);
+  it('long predictable key sample is inconclusive on auto-break without implying OTP', () => {
+    const sample = sampleById('boundary')!;
+    const r = runBreak(sample.ciphertext);
     expect(r.inconclusive).toBe(true);
+    expect(sample.note).toMatch(/predictable/);
+    expect(sample.note).not.toMatch(/effectively unbreakable|perfect secrecy/i);
   });
 
   it('every sample has a category, note, and what-to-notice callout', () => {

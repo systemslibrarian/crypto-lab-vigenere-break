@@ -19,7 +19,7 @@ import {
  * the solver transcript, written in one synchronous pass because reduced motion
  * is really in effect; both text-equivalent tables opened through their
  * summaries; all five distinct scenario verdicts — broken, ambiguous,
- * non-English, OTP-boundary and too-short-to-try; a wrong key-length hypothesis;
+ * non-English, long-key sparse columns and too-short-to-try; a wrong key-length hypothesis;
  * a column overridden by hand and then reset; the answer key revealed; challenge
  * mode from hidden key through a spent hint to a submitted score; the cleared
  * empty state; and the explainer in both views with each of its three spotlight

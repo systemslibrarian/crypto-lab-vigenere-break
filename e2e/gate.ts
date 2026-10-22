@@ -816,7 +816,7 @@ async function pickSample(page: Page, id: string): Promise<void> {
  * Six things shape this drive:
  *
  *  - IT SCANS THE ARRIVAL STATE FIRST, BEFORE ANY CLICK. This lab ships already
- *    solved (see `boot`), so the first state is a completed break — and the gate
+ *    verified against a bundle (see `boot`), so the first state is a checked break — and the gate
  *    this replaces reached it only after three attack runs and two mode flips
  *    had overwritten it.
  *
@@ -826,7 +826,7 @@ async function pickSample(page: Page, id: string): Promise<void> {
  *    `speckled` is ambiguous (the amber "intervene here first" banner and
  *    `.col-card.ambiguous`); `latin` resolves a key length but fails the English
  *    check (`.status.info` plus a partial-quality verdict); `boundary` is the
- *    OTP case, where the solver refuses and `.rail-step.fail` appears; and
+ *    long predictable key case, where the solver lacks usable columns; and
  *    `short` is the honest-refusal path, which is the only route to the
  *    `--caution` warning under the ciphertext box. The old gate scanned one of
  *    the seven.
@@ -931,7 +931,7 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   // that is the assertion that the preference actually changed the code path.
   await expect(page.locator('#transcript')).toBeVisible();
   await expect(page.locator('#transcript .mono-out > div').last()).toContainText(
-    'the cipher is broken'
+    'plausible candidate only'
   );
   await scanAt('solver transcript written in full');
 
@@ -950,9 +950,9 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await expect(page.locator('.keyout')).not.toBeEmpty();
   await scanAt('the Latin scenario, key recovered but not English');
 
-  // The OTP boundary: the solver refuses, and the rail shows a failed stage.
+  // Long predictable key: the solver refuses because the columns are too thin.
   await pickSample(page, 'boundary');
-  await scanAt('the OTP-boundary scenario');
+  await scanAt('the long-key sparse-column scenario');
 
   // Too short: the only route to the `--caution` warning under the box.
   await pickSample(page, 'short');

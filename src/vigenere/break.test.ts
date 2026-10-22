@@ -69,18 +69,19 @@ describe('Full break pipeline (derived, not hardcoded)', () => {
     expect(tweaked.key[0]).not.toBe(base.key[0]);
   });
 
-  it('flags the OTP boundary when key length approaches text length', () => {
+  it('flags insufficient column data without claiming OTP security', () => {
     const sample = sampleById('short')!;
     const letters = normalize(sample.ciphertext);
     const result = runBreak(sample.ciphertext, { keyLength: Math.floor(letters.length / 2) });
     expect(result.inconclusive).toBe(true);
-    expect(result.note).toMatch(/one-time-pad|OTP|boundary/i);
+    expect(result.note).toMatch(/too few letters|Inconclusive statistics/i);
+    expect(result.note).toMatch(/predictable key is not a one-time pad/i);
   });
 
   // Regression: the UI marks strongIocPeriods with "peak ◆" under an
   // "English-like?" heading. When no period clears the English-like floor the
   // diagnosis reports no peak, so the marks must be absent too — otherwise the
-  // OTP-boundary sample simultaneously claims "English-like peaks at 2,3,4,5,6"
+  // Long-key sample simultaneously claimed "English-like peaks at 2,3,4,5,6"
   // and "No period produces an English-like IoC".
   it('flags no English-like periods when the IoC peak itself is inconclusive', () => {
     const sample = sampleById('boundary')!;

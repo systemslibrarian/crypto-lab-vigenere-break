@@ -8,6 +8,10 @@ import { createCipherPanel } from './cipherPanel';
 import { createBreakWorkbench } from './breakWorkbench';
 import { createExplainer } from './explainer';
 import { SAMPLES } from '../samples';
+import { encrypt } from '../vigenere/cipher';
+import { analyzeCiphertext, runBreak } from '../vigenere/break';
+import { plaintextQuality } from '../vigenere/quality';
+import { buildTranscript } from './transcript';
 
 beforeEach(() => {
   Object.defineProperty(navigator, 'clipboard', {
@@ -46,11 +50,62 @@ describe('Break workbench (DOM)', () => {
     expect(wb.querySelectorAll('.rail-step').length).toBe(4);
   });
 
-  it('surfaces the recovered key and broken banner for Declaration (LEMON)', () => {
+  it('verifies the solver candidate against the bundled Declaration answer (LEMON)', () => {
     const wb = createBreakWorkbench();
     document.body.append(wb);
     expect(wb.querySelector('.keyout')!.textContent).toBe('LEMON');
-    expect(wb.textContent).toMatch(/Cipher broken/i);
+    expect(wb.textContent).toMatch(/Verified against the bundled answer/i);
+    expect(wb.querySelector('.rail-step:last-child')?.className).toMatch(/done/);
+  });
+
+  it('keeps a high-scoring wrong MEMON candidate unverified for custom ciphertext', () => {
+    // Reproducer: the wrong first shift corrupts every fifth letter, yet
+    // surviving words and bigrams push the English heuristic above its floor.
+    const plain = 'We can meet at the river in the morning and take the road to the old house. We should bring some food and water with us because the walk will take more time than we think. The people from the town will be there when we arrive and they will help us find the way home. '.repeat(10);
+    const ciphertext = encrypt(plain, 'LEMON').text;
+    const wrong = runBreak(ciphertext, { keyLength: 5, shiftOverrides: { 0: 12, 1: 4, 2: 12, 3: 14, 4: 13 } });
+    expect(wrong.key).toBe('MEMON');
+    expect(wrong.plaintext).not.toBe(plain.toUpperCase());
+    expect(plaintextQuality(wrong.plaintext).combined).toBeCloseTo(0.685601, 5);
+    const transcript = buildTranscript(analyzeCiphertext(ciphertext), wrong);
+    expect(transcript[transcript.length - 1]).toMatch(/plausible candidate only/i);
+    expect(buildTranscript(analyzeCiphertext(ciphertext), wrong).join(' ')).not.toMatch(/cipher is broken/i);
+
+    const wb = createBreakWorkbench();
+    document.body.append(wb);
+    const input = wb.querySelector('#ct-input') as HTMLTextAreaElement;
+    input.value = ciphertext;
+    input.dispatchEvent(new Event('input'));
+    const length = wb.querySelector('#key-length-select') as HTMLSelectElement;
+    length.value = '5';
+    length.dispatchEvent(new Event('change'));
+    const shifts = [12, 4, 12, 14, 13];
+    shifts.forEach((shift, i) => {
+      const select = wb.querySelectorAll('.col-card select')[i] as HTMLSelectElement;
+      select.value = String(shift);
+      select.dispatchEvent(new Event('change'));
+    });
+    expect(wb.querySelector('.keyout')?.textContent).toBe('MEMON');
+    expect(wb.textContent).toMatch(/English-like candidate; custom ciphertext has no bundled answer/i);
+    expect(wb.textContent).toMatch(/manually chosen or hinted/i);
+    expect(wb.querySelector('.rail-step:last-child')?.className).toMatch(/active/);
+    expect(wb.textContent).not.toMatch(/Verified against the bundled answer/i);
+  });
+
+  it('requires the bundled answer in challenge mode, not English-likeness', () => {
+    const wb = createBreakWorkbench();
+    document.body.append(wb);
+    (wb.querySelectorAll('.toggle-group button')[1] as HTMLButtonElement).click();
+    [12, 4, 12, 14, 13].forEach((shift, i) => {
+      const select = wb.querySelectorAll('.col-card select')[i] as HTMLSelectElement;
+      select.value = String(shift);
+      select.dispatchEvent(new Event('change'));
+    });
+    [...wb.querySelectorAll('button')].find((b) => b.textContent === 'Submit solution')!.click();
+    expect(wb.querySelector('.keyout')?.textContent).toBe('MEMON');
+    expect(wb.textContent).toMatch(/Score 0\/100/);
+    expect(wb.textContent).toMatch(/Not verified against the bundled answer/i);
+    expect(wb.querySelector('.rail-step:last-child')?.className).toMatch(/active/);
   });
 
   it('shows sample metadata (category + what to notice)', () => {

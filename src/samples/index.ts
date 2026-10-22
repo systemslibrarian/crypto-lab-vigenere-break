@@ -70,7 +70,7 @@ const SPECKLED = `On glancing over my notes of the seventy odd cases in which I 
 // columns are mis-solved — the recovered text is not readable English.
 const LATIN = `Gallia est omnis divisa in partes tres quarum unam incolunt Belgae aliam Aquitani tertiam qui ipsorum lingua Celtae nostra Galli appellantur hi omnes lingua institutis legibus inter se differunt Gallos ab Aquitanis Garumna flumen a Belgis Matrona et Sequana dividit.`;
 
-// Key length approaches the message length — the one-time-pad boundary.
+// Predictable long key; the solver lacks data per column, not an OTP.
 const BOUNDARY = `Attack the eastern gate one hour before the first light of dawn and hold it.`;
 
 export const SAMPLES: Sample[] = [
@@ -126,13 +126,13 @@ export const SAMPLES: Sample[] = [
   }),
   make({
     id: 'boundary',
-    title: 'OTP boundary (long key)',
+    title: 'Long key, sparse columns',
     category: 'boundary',
     source: 'Synthetic message with a key nearly as long as the text',
     solutionKey: 'THISKEYISALMOSTASLONGASTHEWHOLEMESSAGE',
     plaintext: BOUNDARY,
-    note: 'The key is nearly as long as the message, so each column has only a letter or two. The statistics cannot resolve it — this is the boundary where Vigenère shades into a one-time pad and becomes effectively unbreakable. See the OTP Vault demo for the limit.',
-    whatToNotice: 'No usable IoC peak: the columns are too thin. This is why a one-time pad — a key as long as the message, truly random, and never reused — is unbreakable. Drop any one of those three conditions and it is not.',
+    note: 'This long English-word key is predictable and is shorter than the message, so it repeats. The columns are too thin for this solver to resolve it; that is a limit of these statistics, not a security guarantee. A one-time pad instead requires an independent, uniformly random, secret key of at least the message length, used only once.',
+    whatToNotice: 'No usable IoC peak: the columns are too thin for this attack. The predictable repeating key does not make this an OTP.',
   }),
   make({
     id: 'short',

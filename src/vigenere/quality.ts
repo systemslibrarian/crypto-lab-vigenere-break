@@ -1,7 +1,7 @@
-// Plaintext quality: "does this read as English?" — a more honest signal than
-// whole-text IoC alone. Combines word-hit rate (decryption preserves spaces, so
-// real word boundaries survive), common-bigram coverage, and IoC. Used for the
-// result cue and to guide users toward the column that is still wrong.
+// Plaintext quality: an English-likeness ranking heuristic, NOT a probability
+// or verification. Combines word-hit rate (decryption preserves spaces, so
+// word boundaries survive), common-bigram coverage, and IoC. A wrong key can
+// still score well; the UI checks bundled answers independently for success.
 
 import { ENGLISH_IOC, RANDOM_IOC, indexOfCoincidence } from './ioc';
 
