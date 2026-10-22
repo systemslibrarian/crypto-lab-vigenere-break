@@ -98,6 +98,7 @@ body {
 }
 .intro p { margin: 0.35rem 0; color: var(--ink-soft); max-width: 64ch; }
 .intro a { color: var(--accent-ink); }
+.sources-card a { color: var(--accent-ink); }
 
 /* This demo's theme uses --ink / --ink-soft (not --text / --text-dim); map the
    standard's --text-dim to --ink-soft so hero text clears axe contrast in both themes. */

@@ -50,7 +50,7 @@ const intro = el('section', { class: 'intro' }, [
   ]),
 ]);
 
-const reading = el('section', { class: 'card' }, [
+const reading = el('section', { class: 'card sources-card' }, [
   el('h2', { text: 'Sources & further reading' }),
   el('p', {}, [
     document.createTextNode('For worked Vigenère analysis, see '),
