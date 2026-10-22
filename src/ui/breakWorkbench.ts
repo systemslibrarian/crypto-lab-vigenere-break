@@ -142,6 +142,19 @@ export function createBreakWorkbench(): HTMLElement {
   const railHost = el('div', { id: 'progress-rail' });
   const transcriptHost = el('div', { id: 'transcript', role: 'log', 'aria-live': 'polite', hidden: true });
   const stepsHost = el('div', { class: 'steps' });
+  let transcriptRevision = 0;
+
+  /**
+   * A transcript narrates one exact workbench snapshot. Any re-render means the ciphertext,
+   * limits, hypothesis, shifts, or mode may have changed, so both a finished transcript and
+   * an animation still yielding between lines must be retired.
+   */
+  function retireTranscript() {
+    transcriptRevision++;
+    transcriptHost.hidden = true;
+    clear(transcriptHost);
+    runBtn.removeAttribute('disabled');
+  }
 
   card.append(
     el('div', { class: 'row' }, [
@@ -176,6 +189,7 @@ export function createBreakWorkbench(): HTMLElement {
   async function runAttack() {
     resetHypothesis();
     render();
+    const myRevision = ++transcriptRevision;
     const analysis = analyzeCiphertext(ciphertext, maxKeyLength);
     const result = runBreak(ciphertext, { maxKeyLength });
     const lines = buildTranscript(analysis, result);
@@ -199,17 +213,19 @@ export function createBreakWorkbench(): HTMLElement {
     }
     runBtn.setAttribute('disabled', '');
     for (const l of lines) {
+      if (myRevision !== transcriptRevision) return;
       log.append(el('div', { text: l }));
       log.scrollTop = log.scrollHeight;
       await delay(280);
     }
-    runBtn.removeAttribute('disabled');
+    if (myRevision === transcriptRevision) runBtn.removeAttribute('disabled');
   }
 
   // ————————————————————————————————————————————————————————————
   // Render
   // ————————————————————————————————————————————————————————————
   function render() {
+    retireTranscript();
     syncUrl();
     renderMeta();
     renderCounters();

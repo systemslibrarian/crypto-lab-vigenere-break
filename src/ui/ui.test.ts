@@ -3,7 +3,7 @@
 // that the workbench surfaces keys, confidence, heatmaps, challenge mode, the
 // solver transcript, sample metadata, and shareable URL state.
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCipherPanel } from './cipherPanel';
 import { createBreakWorkbench } from './breakWorkbench';
 import { createExplainer } from './explainer';
@@ -140,6 +140,37 @@ describe('Break workbench (DOM)', () => {
     const t = wb.querySelector('#transcript')!;
     expect((t as HTMLElement).hidden).toBe(false);
     expect(t.textContent).toMatch(/Solver transcript/i);
+  });
+
+  it('retires an in-flight solver transcript when the ciphertext changes', async () => {
+    vi.useFakeTimers();
+    try {
+      const wb = createBreakWorkbench();
+      document.body.append(wb);
+      const run = wb.querySelector('#run-attack') as HTMLButtonElement;
+      const transcript = wb.querySelector('#transcript') as HTMLElement;
+
+      run.click();
+      expect(transcript.hidden).toBe(false);
+      expect(transcript.textContent).toMatch(/Solver transcript/i);
+
+      const ciphertext = wb.querySelector('#ct-input') as HTMLTextAreaElement;
+      ciphertext.value = 'A different ciphertext';
+      ciphertext.dispatchEvent(new Event('input'));
+
+      expect(transcript.hidden).toBe(true);
+      expect(transcript.textContent).toBe('');
+      expect(run.disabled).toBe(false);
+
+      // Let the superseded delay resume. It must see the changed revision and leave the
+      // retired transcript empty instead of appending conclusions from the old ciphertext.
+      await vi.runAllTimersAsync();
+      expect(transcript.hidden).toBe(true);
+      expect(transcript.textContent).toBe('');
+      expect(run.disabled).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('restores state from the URL hash', () => {
