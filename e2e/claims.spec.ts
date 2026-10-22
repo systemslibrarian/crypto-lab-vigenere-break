@@ -429,7 +429,7 @@ test.describe('Failure and honest-refusal paths', () => {
     await expect(page.locator('#sample-meta')).not.toContainText('effectively unbreakable');
   });
 
-  test('non-English plaintext: the key length resolves but the English check still fails', async ({ page }) => {
+  test('non-English plaintext: bundled answer verifies even though English-quality fails', async ({ page }) => {
     await open(page);
     await pickSample(page, 'latin');
 
@@ -438,14 +438,14 @@ test.describe('Failure and honest-refusal paths', () => {
     const plaintext = (await decryptionOut(page).textContent()) ?? '';
     // The arithmetic is sound — this really is the decryption...
     expect(encryptLetters(plaintext, key)).toBe(normalize(ct));
-    // ...but the English model is the wrong one, so there is no verified verdict.
+    // English-likeness is not the verifier: Latin can match the known answer
+    // even when this English-only quality heuristic rejects it.
     await expect(page.locator('.status', { hasText: /English quality/ })).not.toContainText(
       'reads as English'
     );
-    await expect(page.locator('.status.alarm', { hasText: /Verified against the bundled answer/ })).toHaveCount(0);
-    await expect(resultStep(page)).toContainText(/not English|Partially readable/i);
-    // The final rail stage never completes.
-    await expect(page.locator('.rail-step').last()).toHaveClass(/active/);
+    await expect(page.locator('.status.alarm', { hasText: /Verified against the bundled answer/ })).toHaveCount(1);
+    await expect(resultStep(page)).toContainText(/Verified against the bundled answer/);
+    await expect(page.locator('.rail-step').last()).toHaveClass(/done/);
   });
 
   test('a wrong key-length hypothesis produces garbage and the page says so', async ({ page }) => {
@@ -473,7 +473,7 @@ test.describe('Failure and honest-refusal paths', () => {
 
     await page.getByRole('button', { name: /Reveal true key/ }).click();
     await expect(page.locator('.status', { hasText: /True key/ })).toContainText(
-      `True key: ${trueKey}. Does not match yet`
+      `True key: ${trueKey}. Your candidate does not match the bundled answer yet`
     );
   });
 
@@ -496,7 +496,7 @@ test.describe('Failure and honest-refusal paths', () => {
     expect(encryptLetters(plaintext, tampered)).toBe(normalize(await ciphertextOf(page)));
     expect(plaintext.toUpperCase()).not.toContain('WHEN IN THE COURSE');
     await page.getByRole('button', { name: /Reveal true key/ }).click();
-    await expect(page.locator('.status', { hasText: /True key/ })).toContainText('Does not match yet');
+    await expect(page.locator('.status', { hasText: /True key/ })).toContainText('Your candidate does not match the bundled answer yet');
 
     // Restoring the solver's own answer clears the manual flag.
     await col.locator('select').selectOption(String(trueKey.charCodeAt(0) - A));

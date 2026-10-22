@@ -235,7 +235,8 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   // Everything below is mounted by `src/main.ts`, so a navigation that resolves
   // proves nothing.
   await expect(page.locator('#app .cl-hero-title')).toHaveText('Vigenère Break');
-  await expect(page.locator('#app section.card')).toHaveCount(3);
+  await expect(page.locator('#app section.card')).toHaveCount(4);
+  await expect(page.getByRole('heading', { name: 'Sources & further reading' })).toBeVisible();
 
   // ── Cipher panel defaults ────────────────────────────────────────────────
   await expect(page.locator('#cipher-input')).toHaveValue(
@@ -824,8 +825,8 @@ async function pickSample(page: Page, id: string): Promise<void> {
  *    and the verdicts are what this lab paints colour with. `declaration` lands
  *    the break (the red `.status.alarm` banner and four `.rail-step.done`);
  *    `speckled` is ambiguous (the amber "intervene here first" banner and
- *    `.col-card.ambiguous`); `latin` resolves a key length but fails the English
- *    check (`.status.info` plus a partial-quality verdict); `boundary` is the
+ *    `.col-card.ambiguous`); `latin` matches its bundled answer while its
+ *    English-quality label fails; `boundary` is the
  *    long predictable key case, where the solver lacks usable columns; and
  *    `short` is the honest-refusal path, which is the only route to the
  *    `--caution` warning under the ciphertext box. The old gate scanned one of

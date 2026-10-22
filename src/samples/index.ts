@@ -66,8 +66,8 @@ const SHORT = `Meet me at the old bridge at dawn.`;
 const SPECKLED = `On glancing over my notes of the seventy odd cases in which I have studied the methods of my friend Sherlock Holmes I find many tragic some comic a large number merely strange but none commonplace.`;
 
 // C. Julius Caesar, "Commentarii de Bello Gallico" I.1 (Latin, public domain).
-// Non-English: the chi-squared solver assumes ENGLISH frequencies, so some
-// columns are mis-solved — the recovered text is not readable English.
+// Non-English: the chi-squared solver assumes ENGLISH frequencies. This sample
+// happens to recover the exact key, yet the English-quality heuristic fails.
 const LATIN = `Gallia est omnis divisa in partes tres quarum unam incolunt Belgae aliam Aquitani tertiam qui ipsorum lingua Celtae nostra Galli appellantur hi omnes lingua institutis legibus inter se differunt Gallos ab Aquitanis Garumna flumen a Belgis Matrona et Sequana dividit.`;
 
 // Predictable long key; the solver lacks data per column, not an OTP.
@@ -121,8 +121,8 @@ export const SAMPLES: Sample[] = [
     source: 'C. J. Caesar, De Bello Gallico I.1 (Latin, public domain)',
     solutionKey: 'ROMA',
     plaintext: LATIN,
-    note: 'The ciphertext is Latin, but the column solver scores shifts against ENGLISH letter frequencies. The key length resolves, yet some columns are mis-solved — the recovered text is not readable English. The frequency model is part of the attack.',
-    whatToNotice: 'The break finds a key length, but the "plaintext" still fails the English check. Why? Wrong language model.',
+    note: 'This Latin sample happens to recover the exact bundled key and plaintext despite the solver using ENGLISH letter frequencies. The English-quality heuristic still rejects the plaintext. A different language model can mislead statistical attacks, and language fit alone is not answer verification.',
+    whatToNotice: 'The candidate matches the known answer even though the English-quality score rejects Latin. Readability is not the verifier.',
   }),
   make({
     id: 'boundary',

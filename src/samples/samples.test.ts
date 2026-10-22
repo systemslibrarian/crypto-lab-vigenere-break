@@ -27,11 +27,13 @@ describe('Bundled samples', () => {
     expect(plaintextQuality(r.plaintext).label).toBe('reads as English');
   });
 
-  it('non-English sample finds a key length but the result is NOT readable English', () => {
+  it('non-English sample matches its bundled answer despite failing English quality', () => {
     const s = sampleById('latin')!;
     const r = runBreak(s.ciphertext);
     expect(r.keyLength).toBeGreaterThan(0);
-    // The English-frequency model mis-solves Latin: quality must not read as English.
+    expect(r.key).toBe(s.solutionKey);
+    expect(r.plaintext).toBe(s.plaintext.toUpperCase());
+    // English quality is a heuristic, not a gate for correct Latin text.
     expect(plaintextQuality(r.plaintext).label).not.toBe('reads as English');
   });
 
