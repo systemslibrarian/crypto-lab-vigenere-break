@@ -37,8 +37,14 @@ export function section(title: string, subtitle?: string): HTMLElement {
 
 /** Copy-to-clipboard button for a string getter. */
 export function copyButton(getText: () => string, label = 'Copy'): HTMLButtonElement {
+  // The glyph is drawn from CSS and the name moves with the word. axe 4.14
+  // compares a control's accessible name against everything a SIGHTED user
+  // sees (label-content-name-mismatch, WCAG 2.5.3 Label in Name) while
+  // excluding aria-hidden content from the NAME, so an aria-hidden glyph
+  // inside the button can never be matched by any label, and a name that
+  // stands still while the word becomes "Copied" stops matching the moment
+  // it is clicked.
   const btn = el('button', { class: 'copy-btn', type: 'button', 'aria-label': label }, [
-    el('span', { 'aria-hidden': 'true', text: '⧉ ' }),
     el('span', { text: label }),
   ]);
   btn.addEventListener('click', async () => {
@@ -46,9 +52,13 @@ export function copyButton(getText: () => string, label = 'Copy'): HTMLButtonEle
     try {
       await navigator.clipboard.writeText(text);
       const status = btn.querySelector('span:last-child')!;
-      const prev = status.textContent;
+      const prev = status.textContent ?? label;
       status.textContent = 'Copied';
-      window.setTimeout(() => (status.textContent = prev), 1200);
+      btn.setAttribute('aria-label', 'Copied');
+      window.setTimeout(() => {
+        status.textContent = prev;
+        btn.setAttribute('aria-label', prev);
+      }, 1200);
     } catch {
       // Clipboard may be unavailable (insecure context); fail quietly.
     }

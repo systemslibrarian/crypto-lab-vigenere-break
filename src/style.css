@@ -351,3 +351,7 @@ details.aria-table th:first-child, details.aria-table td:first-child { text-alig
 /* Related-demo links sit in a text run: use the themed accent ink (>=4.5:1 on the
    page bg) and keep a persistent underline so they're not color-only. */
 .scripture-footer a { color: var(--accent-ink); text-decoration: underline; }
+
+/* The copy glyph, drawn here rather than written as DOM text. See the note in
+   src/ui/dom.ts: aria-hidden does not satisfy label-content-name-mismatch. */
+.copy-btn::before { content: "\29C9\00A0"; }
