@@ -197,6 +197,42 @@ describe('Break workbench (DOM)', () => {
     expect(t.textContent).toMatch(/Solver transcript/i);
   });
 
+  it('a superseded transcript animation stops appending, instead of narrating to the end', async () => {
+    vi.useFakeTimers();
+    try {
+      const wb = createBreakWorkbench();
+      document.body.append(wb);
+      const run = wb.querySelector('#run-attack') as HTMLButtonElement;
+      const transcript = wb.querySelector('#transcript') as HTMLElement;
+
+      run.click();
+      const log = transcript.querySelector('[aria-label="Solver transcript output"]')!;
+      // One line is appended before the first delay; the rest are behind it.
+      expect(log.childElementCount).toBe(1);
+
+      const ciphertext = wb.querySelector('#ct-input') as HTMLTextAreaElement;
+      ciphertext.value = 'A different ciphertext';
+      ciphertext.dispatchEvent(new Event('input'));
+      await vi.runAllTimersAsync();
+
+      // Retiring DETACHES this log, so nothing it says can be read — which is why the
+      // sibling test above passes with or without the revision check inside the animation
+      // loop. This is the assertion that sees it: a superseded animation must stop, not go
+      // on narrating the old ciphertext's conclusions into a node nobody is looking at.
+      expect(log.isConnected).toBe(false);
+      expect(log.childElementCount).toBe(1);
+
+      // Control, so that `1` is an animation stopped early rather than a transcript that
+      // was only ever one line long: a run nothing supersedes narrates more than one line.
+      run.click();
+      await vi.runAllTimersAsync();
+      const finished = transcript.querySelector('[aria-label="Solver transcript output"]')!;
+      expect(finished.childElementCount).toBeGreaterThan(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('retires an in-flight solver transcript when the ciphertext changes', async () => {
     vi.useFakeTimers();
     try {
