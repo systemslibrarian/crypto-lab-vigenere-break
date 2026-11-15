@@ -56,7 +56,7 @@ const reading = el('section', { class: 'card sources-card' }, [
     document.createTextNode('For worked Vigenère analysis, see '),
     el('a', { href: 'https://www.cryptool.org/en/ctbook/' , target: '_blank', rel: 'noopener noreferrer', text: 'Bernhard Esslinger, Learning and Experiencing Cryptography with CrypTool and SageMath (2024), chapter 3' }),
     document.createTextNode('. For the precise one-time-pad distinction, see '),
-    el('a', { href: 'https://www.rfc-editor.org/rfc/rfc4949#section-6', target: '_blank', rel: 'noopener noreferrer', text: 'IETF RFC 4949, Internet Security Glossary (2007), “one-time pad”' }),
+    el('a', { href: 'https://www.rfc-editor.org/rfc/rfc4949#section-4', target: '_blank', rel: 'noopener noreferrer', text: 'IETF RFC 4949, Internet Security Glossary (2007), §4 “one-time pad”' }),
     document.createTextNode(' and '),
     el('a', { href: 'https://onlinelibrary.wiley.com/doi/10.1002/j.1538-7305.1949.tb00928.x', target: '_blank', rel: 'noopener noreferrer', text: 'Claude Shannon, Communication Theory of Secrecy Systems (1949)' }),
     document.createTextNode('. The displayed English quality is this demo’s ranking heuristic, not a verification or a probability.'),

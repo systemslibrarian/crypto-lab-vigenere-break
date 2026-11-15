@@ -22,7 +22,7 @@ Encrypt and decrypt text with a keyword (the panel shows the per-letter key alig
 - Too little ciphertext defeats the break: Kasiski needs repeated factors and the index of coincidence and per-column chi-squared analysis need enough letters per column to be statistically meaningful.
 - A wrong key-length guess misaligns every column, so the chi-squared solver locks onto plausible-but-wrong shifts and produces garbage plaintext.
 - Frequency analysis assumes a known plaintext language; text that is not standard English (or a different alphabet entirely) shifts the expected distribution and misleads the solver.
-- Sparse columns can make this statistical solver inconclusive without making a ciphertext secure. The bundled long-key sample uses a predictable English phrase shorter than the message, so the key repeats. Key length and non-reuse alone do not imply a one-time pad or perfect secrecy; see the independent random-key conditions in [RFC 4949](https://www.rfc-editor.org/rfc/rfc4949#section-6) and [Shannon (1949)](https://doi.org/10.1002/j.1538-7305.1949.tb00928.x).
+- Sparse columns can make this statistical solver inconclusive without making a ciphertext secure. The bundled long-key sample uses a predictable English phrase shorter than the message, so the key repeats. Key length and non-reuse alone do not imply a one-time pad or perfect secrecy; see the independent random-key conditions in [RFC 4949](https://www.rfc-editor.org/rfc/rfc4949#section-4) and [Shannon (1949)](https://doi.org/10.1002/j.1538-7305.1949.tb00928.x).
 - A wrong key can produce an English-like candidate. For example, a long English passage encrypted under `LEMON` can still score about 0.686 on this demo's heuristic when decrypted under `MEMON`; the bundle's answer check prevents that from being called verified. For custom text, compare against independent evidence yourself.
 - Reusing the same keyword across many messages multiplies the exposed material and makes recovery easier, the historical reason Vigenère eventually fell.
 
@@ -51,8 +51,10 @@ npm run dev
 ## Sources
 
 - Bernhard Esslinger, [*Learning and Experiencing Cryptography with CrypTool and SageMath*](https://www.cryptool.org/en/ctbook/) (Artech House, 2024), chapter 3 on historical ciphers and Vigenère analysis.
-- J. Shirey, [RFC 4949, *Internet Security Glossary, Version 2*](https://www.rfc-editor.org/rfc/rfc4949#section-6) (IETF, August 2007), “one-time pad.”
+- R. Shirey, [RFC 4949, *Internet Security Glossary, Version 2*](https://www.rfc-editor.org/rfc/rfc4949#section-4) (IETF, August 2007), §4 “one-time pad.”
 - C. E. Shannon, [*Communication Theory of Secrecy Systems*](https://doi.org/10.1002/j.1538-7305.1949.tb00928.x) (Bell System Technical Journal, 1949), perfect secrecy.
+
+**Sources reviewed 15 November 2026:** [RFC 4949](https://www.rfc-editor.org/rfc/rfc4949.html) is by R. Shirey (August 2007); its glossary entries, including “one-time pad”, are in §4 “Definitions” — §6 is its normative reference, not a definition.
 
 ---
 
