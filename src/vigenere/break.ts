@@ -82,10 +82,14 @@ export interface KeyLengthDiagnosis {
  * averaged IoC sits within a small margin of the maximum (and clears the
  * English-like threshold) as the fundamental length.
  *
- * Note we do NOT trust Kasiski's most-frequent factor directly: small factors
- * (2, 3) divide every spacing that the true factor divides, so they always
- * out-count it. Kasiski is used to CONFIRM the IoC peak (convergence), not to
- * pick the length on its own.
+ * Note we do NOT trust Kasiski's most-frequent factor directly: every proper
+ * divisor of the key length divides every spacing the length itself divides, so
+ * when the length is composite its small divisors tie it on the true spacings
+ * and then win on chance ones (2, 3 and 6 all score 70 on the 6-letter
+ * Gettysburg sample, and the tally's tie-break ranks 2 first). That is not
+ * universal — on the 5-letter Declaration sample 5 tops the tally, 61 to 2's
+ * 31, because 2 and 3 do not divide 5 — but it is common enough that Kasiski is
+ * used to CONFIRM the IoC peak (convergence), not to pick the length on its own.
  */
 export function diagnoseKeyLength(
   letters: string,

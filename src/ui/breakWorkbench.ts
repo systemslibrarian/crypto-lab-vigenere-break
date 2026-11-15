@@ -343,7 +343,7 @@ export function createBreakWorkbench(): HTMLElement {
 
     const factorList = kas.factors.slice(0, 8).map((f) => `${f.factor} (×${f.count})`).join('   ');
     body.append(el('p', {}, [el('strong', { text: 'Factor frequency: ' }), el('span', { class: 'mono-out', style: 'display:inline-block;padding:0.2rem 0.5rem;margin:0', text: factorList || '—' })]));
-    body.append(el('p', { class: 'hint', text: 'Caution: the smallest factors (2, 3) divide every spacing, so they always score highest. Use these to corroborate the IoC peak — not to pick the length alone.' }));
+    body.append(el('p', { class: 'hint', text: 'Caution: every divisor of the key length divides every true spacing, so a small proper divisor can tie or outrank the length itself — on the 6-letter Gettysburg sample 2, 3 and 6 all score 70 — and small factors pick up chance spacings on top of that. They do not always win, though: on the 5-letter Declaration sample 5 tops the tally at 61, against 31 for 2. Use these to corroborate the IoC peak — not to pick the length alone.' }));
     return step;
   }
 

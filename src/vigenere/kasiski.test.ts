@@ -41,6 +41,32 @@ describe('Kasiski examination', () => {
     expect(result.candidates.slice(0, 3)).toContain(5);
   });
 
+  it('small factors do NOT always score highest (5-letter key tops its own tally)', () => {
+    // Pins the Step-1 caution. 2 and 3 do not divide every spacing: they only
+    // divide the ones they happen to divide, plus every true spacing when they
+    // divide the key length. With the prime length 5 they do neither, so the
+    // key length itself wins outright.
+    const sample = SAMPLES.find((s) => s.id === 'declaration')!; // key LEMON, length 5
+    const { factors } = kasiski(encrypt(sample.plaintext, 'LEMON').lettersOnly, { maxKeyLength: 20 });
+    const count = (f: number) => factors.find((t) => t.factor === f)!.count;
+    expect(factors[0].factor).toBe(5);
+    expect(count(5)).toBe(61);
+    expect(count(2)).toBe(31);
+    expect(count(3)).toBe(26);
+    expect(count(5)).toBeGreaterThan(count(2));
+  });
+
+  it('a composite key length is tied, not out-counted, by its own divisors', () => {
+    // The other half of the caution: with length 6, every divisor of 6 divides
+    // every true spacing, so 2, 3 and 6 tie and the tally's factor-ascending
+    // tie-break puts 2 on top.
+    const sample = SAMPLES.find((s) => s.id === 'gettysburg')!; // key CIPHER, length 6
+    const { factors } = kasiski(encrypt(sample.plaintext, 'CIPHER').lettersOnly, { maxKeyLength: 20 });
+    const count = (f: number) => factors.find((t) => t.factor === f)!.count;
+    expect([count(2), count(3), count(6)]).toEqual([70, 70, 70]);
+    expect(factors[0].factor).toBe(2);
+  });
+
   it('returns no candidates when there are no repeats', () => {
     const result = kasiski('ABCDEFGHIJ', { maxKeyLength: 20 });
     expect(result.repeats).toEqual([]);
