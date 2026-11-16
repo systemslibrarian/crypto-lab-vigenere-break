@@ -9,6 +9,7 @@ import { createBreakWorkbench } from './breakWorkbench';
 import { createExplainer } from './explainer';
 import { SAMPLES } from '../samples';
 import { encrypt } from '../vigenere/cipher';
+import { kasiski } from '../vigenere/kasiski';
 import { analyzeCiphertext, runBreak } from '../vigenere/break';
 import { plaintextQuality } from '../vigenere/quality';
 import { buildTranscript } from './transcript';
@@ -270,6 +271,43 @@ describe('Break workbench (DOM)', () => {
     document.body.append(wb);
     expect((wb.querySelector('#sample-pick') as HTMLSelectElement).value).toBe('gettysburg');
     expect(wb.querySelectorAll('.col-card').length).toBe(6);
+  });
+
+  // Both prose copies about small divisors — Step 1's caution and the Gettysburg
+  // sample's own callout — are pinned here to the relation the tally produces,
+  // so neither the sentence nor the comparison can drift without this failing.
+  // The callout said small factors "out-count" 6. They do not: tallyFactors
+  // gives each spacing one count per divisor of that spacing and sorts by
+  // `b.count - a.count || a.factor - b.factor`, and every divisor of the key
+  // length divides every true spacing. With length 6 that makes 2, 3 and 6 tie
+  // on the count; the factor-ascending tie-break, not a bigger count, is what
+  // lists the small divisors above the length.
+  it('describes small divisors with the relation the Kasiski tally actually produces', () => {
+    const gettysburg = SAMPLES.find((s) => s.id === 'gettysburg')!;
+    const { factors } = kasiski(
+      encrypt(gettysburg.plaintext, gettysburg.solutionKey).lettersOnly,
+      { maxKeyLength: 20 },
+    );
+    const count = (f: number) => factors.find((t) => t.factor === f)!.count;
+    const rank = (f: number) => factors.findIndex((t) => t.factor === f);
+
+    // The behaviour: a tie on the count, ahead only on the tie-break.
+    expect(count(2)).toBe(count(6));
+    expect(count(3)).toBe(count(6));
+    expect(rank(2)).toBeLessThan(rank(6));
+    expect(rank(3)).toBeLessThan(rank(6));
+
+    // The wording, as the reader sees it.
+    history.replaceState(null, '', location.pathname + '#s=gettysburg&kl=6');
+    const wb = createBreakWorkbench();
+    document.body.append(wb);
+    const shown = (wb.textContent ?? '').replace(/\s+/g, ' ');
+
+    expect(shown).toContain('a small proper divisor can tie or outrank the length itself');
+    expect(shown).toContain('2, 3 and 6 all score 70');
+    expect(shown).toContain('tie 6 in Kasiski and the tie-break ranks them above it');
+    // Out-counting is the one claim the tally does not support here.
+    expect(shown).not.toMatch(/out-?count|out-?score|outnumber/i);
   });
 });
 

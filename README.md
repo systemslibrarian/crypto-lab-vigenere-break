@@ -54,7 +54,7 @@ npm run dev
 - R. Shirey, [RFC 4949, *Internet Security Glossary, Version 2*](https://www.rfc-editor.org/rfc/rfc4949#section-4) (IETF, August 2007), §4 “one-time pad.”
 - C. E. Shannon, [*Communication Theory of Secrecy Systems*](https://doi.org/10.1002/j.1538-7305.1949.tb00928.x) (Bell System Technical Journal, 1949), perfect secrecy.
 
-**Sources reviewed 15 November 2026:** [RFC 4949](https://www.rfc-editor.org/rfc/rfc4949.html) is by R. Shirey (August 2007); its glossary entries, including “one-time pad”, are in §4 “Definitions” — §6 is its normative reference, not a definition.
+**Sources reviewed 15 November 2026:** [RFC 4949](https://www.rfc-editor.org/rfc/rfc4949.html) is by R. Shirey (August 2007); its glossary entries, including “one-time pad”, are in §4 “Definitions” — §6 is its normative reference, not a definition. Re-read against this lab's own code on the same date: `tallyFactors` ranks by count descending and breaks ties on the smaller factor, so a proper divisor of the key length **ties** the length on the count and is listed above it only by that tie-break — the page and the Gettysburg sample callout say so, and `src/ui/ui.test.ts` pins the wording to the tally.
 
 ---
 

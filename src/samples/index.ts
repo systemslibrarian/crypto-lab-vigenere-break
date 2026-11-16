@@ -92,7 +92,7 @@ export const SAMPLES: Sample[] = [
     solutionKey: 'CIPHER',
     plaintext: GETTYSBURG,
     note: 'A 6-letter key over a medium-length text. The break still resolves, but the IoC peak and Kasiski factors require a little more reading.',
-    whatToNotice: 'Small factors (2, 3) out-count 6 in Kasiski — let IoC pick the fundamental.',
+    whatToNotice: 'Small factors (2, 3) tie 6 in Kasiski and the tie-break ranks them above it — let IoC pick the fundamental.',
   }),
   make({
     id: 'holmes',
