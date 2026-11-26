@@ -52,9 +52,18 @@ export function createCipherPanel(): HTMLElement {
   encBtn.addEventListener('click', () => setDirection('encrypt'));
   decBtn.addEventListener('click', () => setDirection('decrypt'));
 
-  function renderStrip(result: CipherResult) {
+  function clearAlignment() {
     clear(strip);
-    if (result.alignment.length === 0) return;
+    strip.setAttribute('aria-label', 'No aligned letters.');
+    tableau.highlight(null, null);
+  }
+
+  function renderStrip(result: CipherResult) {
+    if (result.alignment.length === 0) {
+      clearAlignment();
+      return;
+    }
+    clear(strip);
     // Four sticky row labels in the first column.
     const labels = ['in', 'key', 'shift', 'out'];
     strip.style.gridTemplateRows = 'repeat(4, auto)';
@@ -85,6 +94,13 @@ export function createCipherPanel(): HTMLElement {
     tableau.highlight(first.key, first.plain);
   }
 
+  const counts = el('p', { class: 'hint', id: 'cipher-counts', 'aria-live': 'polite' });
+
+  function showCount(letters: number) {
+    const characters = Array.from(input.value).length;
+    counts.textContent = `${characters} character${characters === 1 ? '' : 's'} · ${letters} letter${letters === 1 ? '' : 's'} processed`;
+  }
+
   function render() {
     keyErr.textContent = '';
     clear(outWrap);
@@ -93,17 +109,19 @@ export function createCipherPanel(): HTMLElement {
       key = normalizeKey(keyInput.value);
     } catch (e) {
       keyErr.textContent = (e as Error).message;
-      clear(strip);
-      tableau.highlight(null, null);
+      clearAlignment();
+      showCount(0);
       return;
     }
-    if (input.value.trim() === '') {
+    if (input.value === '') {
       outWrap.append(el('p', { class: 'hint', text: 'Type some text above to see the result.' }));
-      clear(strip);
+      clearAlignment();
+      showCount(0);
       return;
     }
 
     const result = process(input.value, key, direction);
+    showCount(result.alignment.length);
     const outLabel = direction === 'encrypt' ? 'Ciphertext' : 'Plaintext';
     const head = el('div', { class: 'controls' }, [
       el('label', { text: outLabel, style: 'margin:0' }),
@@ -114,13 +132,7 @@ export function createCipherPanel(): HTMLElement {
     renderStrip(result);
   }
 
-  const counts = el('p', { class: 'hint', id: 'cipher-counts', 'aria-live': 'polite' });
-  function renderCounts() {
-    const norm = input.value.toUpperCase().replace(/[^A-Z]/g, '').length;
-    counts.textContent = `${input.value.length} characters · ${norm} letters processed`;
-  }
-
-  input.addEventListener('input', () => { renderCounts(); render(); });
+  input.addEventListener('input', render);
   keyInput.addEventListener('input', render);
 
   card.append(
@@ -134,12 +146,11 @@ export function createCipherPanel(): HTMLElement {
     keyErr,
     outWrap,
     el('label', { text: 'Per-letter alignment', style: 'margin-top:0.8rem' }),
-    el('p', { class: 'hint', text: 'in = input letter · key = repeating key letter · shift = key index (0–25) · out = result. Scroll horizontally; non-letters are skipped in analysis but kept in the output.' }),
+    el('p', { class: 'hint', text: 'in = input letter · key = repeating key letter · shift = key index (0–25) · out = result. Scroll horizontally; only A–Z and a–z advance the key. Other characters stay in place. The character count uses Unicode code points.' }),
     stripWrap,
     el('div', { style: 'margin-top:0.8rem' }, [tableau.root])
   );
 
   setDirection('encrypt');
-  renderCounts();
   return card;
 }

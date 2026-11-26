@@ -1,3 +1,5 @@
+import { normalize } from './cipher';
+
 // Plaintext quality: an English-likeness ranking heuristic, NOT a probability
 // or verification. Combines word-hit rate (decryption preserves spaces, so
 // word boundaries survive), common-bigram coverage, and IoC. A wrong key can
@@ -40,7 +42,7 @@ export interface QualityScore {
 }
 
 export function plaintextQuality(text: string): QualityScore {
-  const letters = text.toUpperCase().replace(/[^A-Z]/g, '');
+  const letters = normalize(text);
   const ioc = indexOfCoincidence(letters);
   const iocNorm = clamp01((ioc - RANDOM_IOC) / (ENGLISH_IOC - RANDOM_IOC));
 

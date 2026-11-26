@@ -23,7 +23,7 @@ export function isAlpha(ch: string): boolean {
 
 /** Uppercase, letters only — the classical analysis form. */
 export function normalize(text: string): string {
-  return text.toUpperCase().replace(/[^A-Z]/g, '');
+  return text.replace(/[^A-Za-z]/g, '').toUpperCase();
 }
 
 /** Validate a key: must be non-empty and all letters. Returns normalized key or throws. */

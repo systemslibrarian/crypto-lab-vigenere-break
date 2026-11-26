@@ -200,6 +200,32 @@ test.describe('Cipher panel', () => {
     expect(letters).toBe(normalize(text).length);
   });
 
+  test('counts and alignment follow the current 26-letter cipher input', async ({ page }) => {
+    await open(page);
+    const input = page.locator('#cipher-input');
+    const key = page.locator('#cipher-key');
+    const strip = page.locator('#cipher-strip');
+    const card = cipherCard(page);
+    await key.fill('BC');
+    await input.fill('Aß📚a');
+    await expect(card.locator('p.mono-out')).toHaveText('Bß📚C');
+    await expect(page.locator('#cipher-counts')).toHaveText('4 characters · 2 letters processed');
+    await expect(strip.locator('.cell:not(.rowlabel)')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Show tabula recta' }).click();
+    await expect(card.locator('.lit-cell')).toHaveText('B');
+    for (const text of ['', 'ß📚', '   ']) {
+      await input.fill(text);
+      await expect(strip).toHaveAccessibleName('No aligned letters.');
+      await expect(card.locator('.lit-cell')).toHaveCount(0);
+      if (text) expect(await card.locator('p.mono-out').textContent()).toBe(text);
+    }
+    await input.fill('A');
+    await key.fill('2');
+    await expect(page.locator('#cipher-counts')).toHaveText('1 character · 0 letters processed');
+    await expect(strip).toHaveAccessibleName('No aligned letters.');
+    await expect(card.locator('.lit-cell')).toHaveCount(0);
+  });
+
   test('decrypt direction inverts encrypt: ciphertext under the same key returns the plaintext', async ({ page }) => {
     await open(page);
     const card = cipherCard(page);
@@ -507,7 +533,7 @@ test.describe('Failure and honest-refusal paths', () => {
   test('custom short ciphertext warns before it fails, with the real letter count', async ({ page }) => {
     await open(page);
     await page.locator('#ct-input').fill('QWERTY ZXCVBN');
-    await expect(page.locator('#ct-counts')).toHaveText('13 characters · 12 letters (analysed) · 0 punctuation/digits');
+    await expect(page.locator('#ct-counts')).toHaveText('13 characters · 12 letters (analysed) · 0 other non-space characters');
     await expect(ctWarning(page)).toHaveText(/Only 12 letters/);
     await expect(page.locator('.keyout')).toHaveCount(0);
     await expect(resultStep(page).locator('.status')).toContainText('only 12 letters');

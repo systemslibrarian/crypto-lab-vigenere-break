@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decrypt, encrypt, normalizeKey, process, tableauCell } from './cipher';
+import { decrypt, encrypt, normalize, normalizeKey, process, tableauCell } from './cipher';
 
 // A deterministic LCG so the property test is reproducible (no Math.random).
 function lcg(seed: number) {
@@ -44,6 +44,11 @@ describe('Vigenère cipher core', () => {
     // lettersOnly is uppercase letters only
     expect(r.lettersOnly).toMatch(/^[A-Z]+$/);
     expect(r.lettersOnly.length).toBe('HelloWorld'.length);
+  });
+
+  it('keeps letters outside the cipher alphabet out of its letter stream', () => {
+    expect(normalize('Aß📚aſﬃ')).toBe('AA');
+    expect(encrypt('Aß📚aſﬃ', 'BC').lettersOnly).toBe('BC');
   });
 
   it('round-trips text containing punctuation, preserving the original characters', () => {

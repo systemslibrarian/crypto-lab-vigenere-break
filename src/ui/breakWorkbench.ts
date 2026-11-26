@@ -280,10 +280,10 @@ export function createBreakWorkbench(): HTMLElement {
   }
 
   function renderCounters() {
-    const raw = ciphertext.length;
+    const raw = Array.from(ciphertext).length;
     const norm = normalize(ciphertext).length;
     const nonAlpha = raw - norm - (ciphertext.match(/\s/g)?.length ?? 0);
-    counters.textContent = `${raw} characters · ${norm} letters (analysed) · ${Math.max(0, nonAlpha)} punctuation/digits`;
+    counters.textContent = `${raw} characters · ${norm} letters (analysed) · ${nonAlpha} other non-space characters`;
     // Both facts, cause first. These used to be an if/else chain, and the
     // "too short" arm always won: paste 52 characters holding 2 letters and the
     // page said "Only 2 letters", never that it had discarded 96% of the input.

@@ -40,7 +40,7 @@ export function createTableau(): TableauHandle {
   wrap.append(table);
 
   function highlight(keyLetter: string | null, plainLetter: string | null): void {
-    for (const td of table.querySelectorAll('td')) {
+    for (const td of table.querySelectorAll('.lit-row, .lit-col, .lit-cell')) {
       td.classList.remove('lit-row', 'lit-col', 'lit-cell');
     }
     if (keyLetter === null && plainLetter === null) return;
@@ -71,11 +71,5 @@ export function createTableau(): TableauHandle {
   });
   root.append(toggle, body);
 
-  return {
-    root,
-    highlight: (k, p) => {
-      // Only bother updating cells when the tableau is visible.
-      if (!body.hasAttribute('hidden')) highlight(k, p);
-    },
-  };
+  return { root, highlight };
 }
