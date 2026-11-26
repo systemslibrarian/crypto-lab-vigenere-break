@@ -895,8 +895,11 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await page.locator('button.reveal-tableau').click();
   await expect(page.locator('button.reveal-tableau')).toHaveText('Hide tabula recta');
   await expect(page.locator('.tableau-wrap')).toBeVisible();
-  await expect(page.locator('td.lit-cell')).toHaveCount(0);
-  // The highlight is only applied on the next render, which a keystroke forces.
+  // Opening the table exposes the already-computed first alignment.
+  const firstCipherLetter = await page.locator('#cipher-strip .cell:not(.rowlabel)').first().locator('span').last().innerText();
+  await expect(page.locator('td.lit-cell')).toHaveText(firstCipherLetter);
+  await expect(page.locator('td.lit-row')).toHaveCount(26);
+  await expect(page.locator('td.lit-col')).toHaveCount(26);
   await page.locator('#cipher-key').fill('LIBERTY');
   await expect(page.locator('td.lit-cell')).toHaveCount(1);
   await expect(page.locator('td.lit-row')).toHaveCount(26);
